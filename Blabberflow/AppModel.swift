@@ -230,10 +230,15 @@ final class AppModel {
     func preview(_ text: String, in style: Style) async throws -> String {
         let corrected = Vocabulary.apply(preferences.dictionary, to: text)
         guard !style.isLiteral else { return corrected }
-        let rewritten = try await rewriter.rewrite(corrected, style: style, dictionary: preferences.dictionary)
-        // Same check as a real dictation, so "Try it" shows what would actually be inserted.
-        guard StyleRewriter.isFaithful(rewritten, to: corrected, dictionary: preferences.dictionary) else { return corrected }
+        guard AppleIntelligenceStatus.current == .ready else { throw PreviewError.appleIntelligenceUnavailable }
+        // Same path as a real dictation, so "Try it" and "Rewrite as" show what would actually be inserted.
+        let rewritten = await rewriter.styledText(corrected, style: style, dictionary: preferences.dictionary)
         return Vocabulary.apply(preferences.dictionary, to: rewritten)
+    }
+
+    enum PreviewError: LocalizedError {
+        case appleIntelligenceUnavailable
+        var errorDescription: String? { "Apple Intelligence isn't ready" }
     }
 
     /// "Start Dictation" in the menu: records hands-free until the pill's stop button or the shortcut.
@@ -472,17 +477,9 @@ final class AppModel {
             log.info("Apple Intelligence unavailable; inserting the transcript as heard")
             return transcript
         }
-        do {
-            let rewritten = try await rewriter.rewrite(transcript, style: sessionStyle, dictionary: preferences.dictionary)
-            guard StyleRewriter.isFaithful(rewritten, to: transcript, dictionary: preferences.dictionary) else {
-                log.error("Rewrite dropped most of what was said; inserting the transcript instead")
-                return transcript
-            }
-            return Vocabulary.apply(preferences.dictionary, to: rewritten)
-        } catch {
-            log.error("Rewrite failed: \(error.localizedDescription, privacy: .public)")
-            return transcript
-        }
+        // Long dictations go through in chunks; any piece that fails keeps what was heard.
+        let rewritten = await rewriter.styledText(transcript, style: sessionStyle, dictionary: preferences.dictionary)
+        return Vocabulary.apply(preferences.dictionary, to: rewritten)
     }
 
     /// Adds to the menu's recent list, saved history (if on) and the Insights counts (always; no text).

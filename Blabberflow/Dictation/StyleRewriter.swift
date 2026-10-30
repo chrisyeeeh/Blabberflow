@@ -1,5 +1,9 @@
 import Foundation
 import FoundationModels
+import NaturalLanguage
+import OSLog
+
+private let log = Logger(subsystem: "com.chrisyeh.Blabberflow", category: "Styles")
 
 enum AppleIntelligenceStatus: Equatable {
     case ready
@@ -34,17 +38,116 @@ final class StyleRewriter {
         session.prewarm()
     }
 
+    /// The on-device model sees about 4,096 tokens per request: ~400 for the instructions, then the
+    /// transcript and the reply at roughly 1.4 tokens a word. Chunks of this size leave plenty of room.
+    static let chunkWords = 450
+    /// The most a list-shaped style's final organising pass takes in one go.
+    static let wholePassWords = 1_000
+
+    /// Rewrites a dictation of any length and never throws. Long ones go through in chunks split at
+    /// sentence ends; a chunk whose rewrite fails or loses what was said keeps its transcript, so one
+    /// bad chunk never costs the rest.
+    func styledText(_ transcript: String, style: Style, dictionary: [String]) async -> String {
+        let transcript = Self.removingHesitations(transcript)
+        let chunks = Self.chunks(of: transcript)
+        guard chunks.count > 1 else {
+            return await faithfulRewrite(transcript, style: style, dictionary: dictionary)
+        }
+        log.info("Rewriting \(Self.wordCount(transcript)) words in \(chunks.count) chunks")
+
+        // List-shaped styles need the whole dictation to organise it: clean each chunk, then organise
+        // the joined text if it fits in one request, else keep it cleaned.
+        let chunkStyle = style.organisesWhole ? Style.clean : style
+        var parts: [String] = []
+        for chunk in chunks {
+            parts.append(await faithfulRewrite(chunk, style: chunkStyle, dictionary: dictionary))
+        }
+        let joined = parts.joined(separator: " ")
+        guard style.organisesWhole, Self.wordCount(joined) <= Self.wholePassWords else { return joined }
+        return await faithfulRewrite(joined, style: style, dictionary: dictionary)
+    }
+
     func rewrite(_ transcript: String, style: Style, dictionary: [String]) async throws -> String {
         let session = makeSession(style: style, dictionary: dictionary)
         self.session = nil // A session keeps its transcript, so each dictation gets a fresh one.
         // Tags keep the model treating the words as text to edit, even when they read like a request.
-        // A rewrite is about as long as what was said; the cap stops a runaway repetition loop early.
-        let spokenWords = transcript.split(whereSeparator: \.isWhitespace).count
+        // A rewrite is about as long as what was said; the cap stops a runaway repetition loop early,
+        // and keeps the transcript plus reply inside the context window.
+        let spokenWords = Self.wordCount(transcript)
+        let replyBudget = max(120, min(spokenWords * 3, 3_600 - spokenWords * 3 / 2))
         let response = try await session.respond(
             to: "<transcript>\n\(transcript)\n</transcript>",
-            options: GenerationOptions(temperature: 0.2, maximumResponseTokens: max(120, spokenWords * 3))
+            options: GenerationOptions(temperature: 0.2, maximumResponseTokens: replyBudget)
         )
         return Self.clean(response.content)
+    }
+
+    /// One request; any failure or unfaithful result gives back the input unchanged.
+    private func faithfulRewrite(_ text: String, style: Style, dictionary: [String]) async -> String {
+        do {
+            let rewritten = try await rewrite(text, style: style, dictionary: dictionary)
+            guard Self.isFaithful(rewritten, to: text, dictionary: dictionary) else {
+                log.error("Rewrite dropped most of a \(Self.wordCount(text))-word passage; keeping it as heard")
+                return text
+            }
+            return rewritten
+        } catch {
+            log.error("Rewrite failed for a \(Self.wordCount(text))-word passage: \(error.localizedDescription, privacy: .public)")
+            return text
+        }
+    }
+
+    /// Sentence-aligned passages of about `chunkWords` words. A sentence longer than that on its own
+    /// (unpunctuated speech) is split by words.
+    static func chunks(of transcript: String) -> [String] {
+        guard wordCount(transcript) > chunkWords else { return [transcript] }
+        let tokenizer = NLTokenizer(unit: .sentence)
+        tokenizer.string = transcript
+        var sentences: [String] = []
+        tokenizer.enumerateTokens(in: transcript.startIndex..<transcript.endIndex) { range, _ in
+            let sentence = transcript[range].trimmingCharacters(in: .whitespacesAndNewlines)
+            if wordCount(sentence) > chunkWords {
+                let words = sentence.split(whereSeparator: \.isWhitespace)
+                sentences += stride(from: 0, to: words.count, by: chunkWords).map {
+                    words[$0..<min($0 + chunkWords, words.count)].joined(separator: " ")
+                }
+            } else if !sentence.isEmpty {
+                sentences.append(sentence)
+            }
+            return true
+        }
+        var chunks: [String] = []
+        var current: [String] = []
+        var currentWords = 0
+        for sentence in sentences {
+            let words = wordCount(sentence)
+            if currentWords + words > chunkWords, !current.isEmpty {
+                chunks.append(current.joined(separator: " "))
+                current = []
+                currentWords = 0
+            }
+            current.append(sentence)
+            currentWords += words
+        }
+        if !current.isEmpty { chunks.append(current.joined(separator: " ")) }
+        return chunks
+    }
+
+    /// Drops pure hesitation sounds ("um", "uh", "erm") before rewriting. The model misses some in long
+    /// passages, and these never carry meaning; words like "like" or "you know" are left to the model.
+    static func removingHesitations(_ text: String) -> String {
+        // Take a comma before the sound with it, so "we should, um, go" becomes "we should go".
+        var result = text.replacing(/(?i)(?:,\s*)?\b(?:um+|uh+|uhm|erm)\b[,.]?\s*/, with: " ")
+        result = result.replacing(/\s{2,}/, with: " ").replacing(/\s+([,.!?;:])/) { $0.output.1 }
+            .trimmingCharacters(in: .whitespaces)
+        // A sentence that started with "Um," now starts lower case.
+        return result.replacing(/(^|[.!?]\s+)(\p{Ll})/) { match in
+            match.output.1 + match.output.2.uppercased()
+        }
+    }
+
+    static func wordCount(_ text: String) -> Int {
+        text.split(whereSeparator: \.isWhitespace).count
     }
 
     /// False when a rewrite has lost what was said: far fewer words than the transcript, or nothing but
