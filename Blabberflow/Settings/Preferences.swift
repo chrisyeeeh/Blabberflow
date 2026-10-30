@@ -134,7 +134,7 @@ struct Style: Codable, Hashable, Identifiable {
         ),
         Style(
             name: "Casual",
-            instructions: "Make it friendly and relaxed, like a chat message: contractions are fine, light punctuation, no full stop at the very end."
+            instructions: "Make it friendly and relaxed, like a chat message: drop ums and uhs, contractions are fine, light punctuation, no full stop at the very end."
         ),
         Style(
             name: "Bullet points",

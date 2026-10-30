@@ -215,7 +215,10 @@ final class AppModel {
     func preview(_ text: String, in style: Style) async throws -> String {
         let corrected = Vocabulary.apply(preferences.dictionary, to: text)
         guard !style.isLiteral else { return corrected }
-        return Vocabulary.apply(preferences.dictionary, to: try await rewriter.rewrite(corrected, style: style, dictionary: preferences.dictionary))
+        let rewritten = try await rewriter.rewrite(corrected, style: style, dictionary: preferences.dictionary)
+        // Same check as a real dictation, so "Try it" shows what would actually be inserted.
+        guard StyleRewriter.isFaithful(rewritten, to: corrected, dictionary: preferences.dictionary) else { return corrected }
+        return Vocabulary.apply(preferences.dictionary, to: rewritten)
     }
 
     /// "Start Dictation" in the menu: records hands-free until the pill's stop button or the shortcut.
@@ -456,7 +459,11 @@ final class AppModel {
         }
         do {
             let rewritten = try await rewriter.rewrite(transcript, style: sessionStyle, dictionary: preferences.dictionary)
-            return rewritten.isEmpty ? transcript : Vocabulary.apply(preferences.dictionary, to: rewritten)
+            guard StyleRewriter.isFaithful(rewritten, to: transcript, dictionary: preferences.dictionary) else {
+                log.error("Rewrite dropped most of what was said; inserting the transcript instead")
+                return transcript
+            }
+            return Vocabulary.apply(preferences.dictionary, to: rewritten)
         } catch {
             log.error("Rewrite failed: \(error.localizedDescription, privacy: .public)")
             return transcript

@@ -128,24 +128,52 @@ private struct StyleChip: View {
     }
 }
 
-/// The words so far, above the pill. Shows the end of long dictations, where the newest words are.
+/// The words so far, above the pill. Grows like a chat box: one hugging line, then wider, then taller,
+/// and past about six lines it scrolls, pinned to the newest words.
 private struct LivePreview: View {
     let text: String
 
+    static let maxTextWidth: CGFloat = 428
+    static let maxTextHeight: CGFloat = 112
+
+    /// The wrapped text's full height, so the bubble hugs it until it reaches the cap.
+    @State private var textHeight: CGFloat = 0
+
     var body: some View {
+        let isClipped = textHeight > Self.maxTextHeight
+        ViewThatFits(in: .horizontal) {
+            bubble(Text(text).font(.system(size: 13)).fixedSize())
+            bubble(
+                // Bottom-aligned in a shorter frame, the oldest lines slide out of the top as you talk.
+                wrapped
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { textHeight = $0 }
+                    .frame(width: Self.maxTextWidth, height: min(max(textHeight, 16), Self.maxTextHeight), alignment: .bottom)
+                    .clipped()
+                    .mask {
+                        LinearGradient(
+                            stops: [.init(color: isClipped ? .clear : .black, location: 0), .init(color: .black, location: 0.2)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    }
+            )
+        }
+        .frame(maxWidth: Self.maxTextWidth + 32)
+        .animation(.easeOut(duration: 0.15), value: text)
+        .accessibilityHidden(true) // VoiceOver hears "Listening"; announcing every word would be noise.
+    }
+
+    private var wrapped: some View {
         Text(text)
             .font(.system(size: 13))
-            .lineLimit(2)
-            .truncationMode(.head)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 9)
-            .frame(maxWidth: 460)
+            .frame(width: Self.maxTextWidth, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func bubble(_ content: some View) -> some View {
+        content
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
             .glassEffect(.regular, in: .rect(cornerRadius: 16))
-            .contentTransition(.opacity)
-            .animation(.easeOut(duration: 0.15), value: text)
-            .accessibilityHidden(true) // VoiceOver hears "Listening"; announcing every word would be noise.
     }
 }
 

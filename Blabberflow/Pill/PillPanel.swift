@@ -7,8 +7,8 @@ final class PillPanel {
 
     init(model: AppModel) {
         panel = NSPanel(
-            // Room above the pill for the two-line live preview.
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 130),
+            // Room above the pill for the live preview at its tallest (about six lines).
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 210),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: true

@@ -11,7 +11,57 @@ enum Vocabulary {
             let range = NSRange(result.startIndex..., in: result)
             result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: NSRegularExpression.escapedTemplate(for: term))
         }
+        return replacingSoundAlikes(of: terms, in: result)
+    }
+
+    /// Names the recogniser misspells ("Cleo" for Clio, "Mini" for Miny). Only words it capitalised
+    /// mid-sentence, as it does for names it doesn't know, so ordinary words like "many" are left alone.
+    /// The word must start with the same letter, have the same consonants and differ by a letter or two.
+    private static func replacingSoundAlikes(of terms: [String], in text: String) -> String {
+        let candidates = terms.filter { $0.count >= 3 && $0.allSatisfy(\.isLetter) }
+        guard !candidates.isEmpty, let wordPattern = try? NSRegularExpression(pattern: "\\p{Lu}\\p{Ll}+") else { return text }
+        var result = text
+        let matches = wordPattern.matches(in: text, range: NSRange(text.startIndex..., in: text)).reversed()
+        for match in matches {
+            guard let range = Range(match.range, in: result), !startsSentence(at: range.lowerBound, in: result) else { continue }
+            let word = String(result[range])
+            let lowered = word.lowercased()
+            guard let term = candidates.first(where: { term in
+                let target = term.lowercased()
+                guard target != lowered, target.first == lowered.first, consonants(target) == consonants(lowered) else { return false }
+                return distance(target, lowered) <= (target.count >= 7 ? 2 : 1)
+            }) else { continue }
+            result.replaceSubrange(range, with: term)
+        }
         return result
+    }
+
+    private static func startsSentence(at index: String.Index, in text: String) -> Bool {
+        let before = text[..<index].reversed().drop(while: \.isWhitespace)
+        guard let previous = before.first else { return true }
+        return ".!?\n".contains(previous)
+    }
+
+    /// The word's consonants with repeats collapsed: "cleo" and "clio" → "cl", "mini" and "miny" → "mn".
+    private static func consonants(_ word: String) -> String {
+        var skeleton = ""
+        for character in word where !"aeiouy".contains(character) && character != skeleton.last {
+            skeleton.append(character)
+        }
+        return skeleton
+    }
+
+    private static func distance(_ a: String, _ b: String) -> Int {
+        let a = Array(a), b = Array(b)
+        var previous = Array(0...b.count)
+        for (i, x) in a.enumerated() {
+            var current = [i + 1]
+            for (j, y) in b.enumerated() {
+                current.append(min(previous[j + 1] + 1, current[j] + 1, previous[j] + (x == y ? 0 : 1)))
+            }
+            previous = current
+        }
+        return previous[b.count]
     }
 
     private static func pattern(for term: String) -> String {
