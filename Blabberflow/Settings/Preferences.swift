@@ -118,6 +118,14 @@ struct Style: Codable, Hashable, Identifiable {
 
     var isLiteral: Bool { id == Self.literalID }
 
+    /// Styles that reorganise the whole dictation (AI prompt, and anything making a list) rather than
+    /// editing it sentence by sentence; long dictations are cleaned in chunks first, then organised.
+    var organisesWhole: Bool {
+        id == Self.aiPromptID || instructions.localizedCaseInsensitiveContains("bullet")
+    }
+
+    static var clean: Style { builtIn.first { $0.id == cleanID }! }
+
     static let literalID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
     static let cleanID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
     static let aiPromptID = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
