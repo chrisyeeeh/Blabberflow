@@ -207,6 +207,21 @@ final class AppModel {
         recent.removeAll()
     }
 
+    /// Deletes one saved transcript (and its menu entry); Insights keep their counts.
+    func deleteHistory(_ entry: HistoryEntry) {
+        recent.removeAll { $0.text == entry.text && $0.date == entry.date }
+        history.delete(entry)
+    }
+
+    /// Types text into the app that was in front before BlabberFlow, e.g. a rewrite from History.
+    func pasteIntoLastApp(_ text: String) {
+        lastOtherApp?.activate()
+        Task {
+            try? await Task.sleep(for: .milliseconds(200))
+            await insert(text)
+        }
+    }
+
     func resetInsights() {
         history.resetInsights()
     }

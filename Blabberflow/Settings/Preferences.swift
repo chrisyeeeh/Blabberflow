@@ -120,6 +120,14 @@ struct Style: Codable, Hashable, Identifiable {
 
     static let literalID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
     static let cleanID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+    static let aiPromptID = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
+
+    /// For talking to an assistant like Claude: what you want done and every detail, organised as a prompt.
+    static let aiPrompt = Style(
+        id: aiPromptID,
+        name: "AI prompt",
+        instructions: "Turn it into a clear prompt for an AI assistant, written in the speaker's first-person voice. First line: the main thing they want, in one sentence. Then every other request, detail and constraint they mentioned, each as its own \"- \" bullet, in their order; never drop or merge one. If they said how they want the answer (length, format), end with a line saying so; otherwise leave it out. Don't add anything they didn't say."
+    )
 
     static let builtIn: [Style] = [
         Style(id: literalID, name: "Literal", instructions: ""),
@@ -136,6 +144,7 @@ struct Style: Codable, Hashable, Identifiable {
             name: "Casual",
             instructions: "Make it friendly and relaxed, like a chat message: drop ums and uhs, contractions are fine, light punctuation, no full stop at the very end."
         ),
+        aiPrompt,
         Style(
             name: "Bullet points",
             instructions: "Format it as a bulleted list: split what was said into separate ideas and put each on its own line starting with \"- \". Keep each bullet short and in the speaker's words."
@@ -194,6 +203,8 @@ final class Preferences {
         microphoneUID = Self.load(Key.microphoneUID) ?? nil
         var styles: [Style] = Self.load(Key.styles) ?? Style.builtIn
         if !styles.contains(where: \.isLiteral) { styles.insert(Style.builtIn[0], at: 0) }
+        // Styles added in later versions reach people who already have a saved list.
+        if !styles.contains(where: { $0.id == Style.aiPromptID }) { styles.append(Style.aiPrompt) }
         // Bring saved built-in prompts up to date, unless the user has edited them.
         let updatedPrompts = [
             "Make it friendly and relaxed, like a chat message: contractions are fine, light punctuation, no full stop at the very end.":

@@ -86,6 +86,11 @@ final class HistoryStore {
         save()
     }
 
+    func delete(_ entry: HistoryEntry) {
+        context.delete(entry)
+        save()
+    }
+
     func clearHistory() {
         try? context.delete(model: HistoryEntry.self)
         save()

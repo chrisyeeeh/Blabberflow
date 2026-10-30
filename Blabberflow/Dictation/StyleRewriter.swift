@@ -38,9 +38,11 @@ final class StyleRewriter {
         let session = makeSession(style: style, dictionary: dictionary)
         self.session = nil // A session keeps its transcript, so each dictation gets a fresh one.
         // Tags keep the model treating the words as text to edit, even when they read like a request.
+        // A rewrite is about as long as what was said; the cap stops a runaway repetition loop early.
+        let spokenWords = transcript.split(whereSeparator: \.isWhitespace).count
         let response = try await session.respond(
             to: "<transcript>\n\(transcript)\n</transcript>",
-            options: GenerationOptions(temperature: 0.2)
+            options: GenerationOptions(temperature: 0.2, maximumResponseTokens: max(120, spokenWords * 3))
         )
         return Self.clean(response.content)
     }
