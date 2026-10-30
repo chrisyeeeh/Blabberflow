@@ -6,7 +6,9 @@
 #
 # Steps: archive (Release) → export signed with Developer ID → notarize and staple
 # the app → build a drag-to-Applications DMG → sign, notarize and staple the DMG.
-# The result lands in build/release/BlabberFlow-<version>.dmg.
+# The result lands in build/release/BlabberFlow-<version>.dmg, plus a copy named
+# BlabberFlow.dmg: attach that one to the GitHub release so the
+# releases/latest/download/BlabberFlow.dmg link always gets the newest version.
 #
 # One-time setup
 #   1. Developer ID certificate: Xcode › Settings › Accounts › your team ›
@@ -117,6 +119,10 @@ step "Checking Gatekeeper accepts it"
 spctl --assess --type execute --verbose "$APP"
 spctl --assess --type open --context context:primary-signature --verbose "$DMG"
 
+LATEST="$OUT/$DISPLAY_NAME.dmg"
+cp "$DMG" "$LATEST"
+
 step "Done"
 echo "$DMG"
+echo "$LATEST (same file, for the GitHub release)"
 echo "SHA-256: $(shasum -a 256 "$DMG" | cut -d' ' -f1)"

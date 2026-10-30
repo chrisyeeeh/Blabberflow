@@ -5,7 +5,12 @@ import SwiftUI
 /// The app's window, laid out like System Settings: a sidebar of panes and grouped forms.
 struct SettingsWindow: View {
     let model: AppModel
-    @State private var pane: Pane? = .general
+    @State private var pane: Pane?
+
+    init(model: AppModel, pane: Pane = .general) {
+        self.model = model
+        _pane = State(initialValue: pane)
+    }
 
     enum Pane: String, CaseIterable, Identifiable {
         case general, shortcuts, styles, dictionary, history, insights, privacy
@@ -57,35 +62,47 @@ struct SettingsWindow: View {
                 Label {
                     Text(pane.title)
                 } icon: {
-                    SidebarTile(colors: pane.gradient) {
-                        if let symbol = pane.symbol {
-                            Image(systemName: symbol)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.white)
-                        } else {
-                            PillGlyph(filled: false).padding(2)
-                        }
-                    }
+                    Self.tile(for: pane)
                 }
                 .padding(.vertical, 2)
             }
             .navigationSplitViewColumnWidth(220)
             .toolbar(removing: .sidebarToggle)
         } detail: {
-            switch pane ?? .general {
-            case .general: GeneralPane(model: model)
-            case .shortcuts: ShortcutsPane(model: model)
-            case .styles: StylesPane(model: model)
-            case .dictionary: DictionaryPane(model: model)
-            case .history: HistoryPane(model: model)
-            case .insights: InsightsPane(model: model)
-            case .privacy: PrivacyPane(model: model)
-            }
+            Self.page(pane ?? .general, model: model)
         }
         .frame(width: 960, height: 640)
         .modelContainer(model.history.container)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             model.refreshPermissions()
+        }
+    }
+}
+
+extension SettingsWindow {
+    /// One page's content, without the sidebar; also used to render screenshots.
+    @ViewBuilder static func page(_ pane: Pane, model: AppModel) -> some View {
+        switch pane {
+        case .general: GeneralPane(model: model)
+        case .shortcuts: ShortcutsPane(model: model)
+        case .styles: StylesPane(model: model)
+        case .dictionary: DictionaryPane(model: model)
+        case .history: HistoryPane(model: model)
+        case .insights: InsightsPane(model: model)
+        case .privacy: PrivacyPane(model: model)
+        }
+    }
+
+    /// The sidebar tile for a page.
+    @ViewBuilder static func tile(for pane: Pane, size: CGFloat = 22) -> some View {
+        SidebarTile(colors: pane.gradient, size: size) {
+            if let symbol = pane.symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: size * 0.55, weight: .semibold))
+                    .foregroundStyle(.white)
+            } else {
+                PillGlyph(filled: false).padding(size * 0.09)
+            }
         }
     }
 }
