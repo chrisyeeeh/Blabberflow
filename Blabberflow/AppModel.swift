@@ -55,7 +55,8 @@ final class AppModel {
         didSet { updateHotkeyEnabled() }
     }
 
-    var isListening: Bool { phase == .listening }
+    /// Observable (unlike `phase`), so the menu bar icon can follow it.
+    var isListening: Bool { pillState == .listening }
 
     var isReady: Bool {
         hasAccessibility && hasMicrophone && speechStatus == .ready && !isPaused
@@ -161,6 +162,16 @@ final class AppModel {
     func refreshPermissions() {
         hasAccessibility = AXIsProcessTrusted()
         hasMicrophone = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    }
+
+    /// "Start Dictation" in the menu: records hands-free until the pill's stop button or the shortcut.
+    func startDictationFromMenu() {
+        if NSApp.isActive { lastOtherApp?.activate() }
+        Task {
+            // Let the menu close and focus return to the app being dictated into.
+            try? await Task.sleep(for: .milliseconds(150))
+            beginHandsFree()
+        }
     }
 
     /// The pill's stop button in press-to-start mode.

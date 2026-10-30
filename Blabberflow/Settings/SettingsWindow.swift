@@ -20,21 +20,23 @@ struct SettingsWindow: View {
             }
         }
 
-        var symbol: String {
+        /// SF Symbol for the tile's glyph; General draws the app's pill instead.
+        var symbol: String? {
             switch self {
-            case .general: "gearshape.fill"
-            case .shortcuts: "keyboard.fill"
-            case .history: "clock.fill"
-            case .privacy: "hand.raised.fill"
+            case .general: nil
+            case .shortcuts: "option"
+            case .history: "clock"
+            case .privacy: "checkmark.shield"
             }
         }
 
-        var tint: Color {
+        /// Top and bottom of the tile's gradient, top-lit like the app icon.
+        var gradient: [Color] {
             switch self {
-            case .general: .gray
-            case .shortcuts: Color(white: 0.35)
-            case .history: .green
-            case .privacy: .blue
+            case .general: [Color(red: 0.48, green: 0.42, blue: 1.00), Color(red: 0.20, green: 0.10, blue: 0.62)]
+            case .shortcuts: [Color(red: 0.60, green: 0.60, blue: 0.63), Color(red: 0.29, green: 0.29, blue: 0.31)]
+            case .history: [Color(red: 0.37, green: 0.86, blue: 0.48), Color(red: 0.12, green: 0.60, blue: 0.25)]
+            case .privacy: [Color(red: 0.31, green: 0.66, blue: 1.00), Color(red: 0.04, green: 0.37, blue: 0.78)]
             }
         }
     }
@@ -45,11 +47,15 @@ struct SettingsWindow: View {
                 Label {
                     Text(pane.title)
                 } icon: {
-                    Image(systemName: pane.symbol)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 22, height: 22)
-                        .background(pane.tint.gradient, in: .rect(cornerRadius: 6))
+                    SidebarTile(colors: pane.gradient) {
+                        if let symbol = pane.symbol {
+                            Image(systemName: symbol)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white)
+                        } else {
+                            PillGlyph(filled: false).padding(2)
+                        }
+                    }
                 }
                 .padding(.vertical, 2)
             }
@@ -67,6 +73,29 @@ struct SettingsWindow: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             model.refreshPermissions()
         }
+    }
+}
+
+/// A sidebar icon: a 22 pt tile with a top-lit gradient and a white glyph, one family with the app icon.
+private struct SidebarTile<Glyph: View>: View {
+    let colors: [Color]
+    var size: CGFloat = 22
+    @ViewBuilder let glyph: Glyph
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
+        shape
+            .fill(LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom))
+            .overlay {
+                shape.strokeBorder(
+                    LinearGradient(colors: [.white.opacity(0.4), .clear, .black.opacity(0.14)], startPoint: .top, endPoint: .bottom),
+                    lineWidth: 0.5
+                )
+            }
+            .shadow(color: .black.opacity(0.16), radius: 1, y: 0.5)
+            .overlay { glyph }
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }
 
@@ -101,6 +130,7 @@ private struct GeneralPane: View {
     @Bindable var model: AppModel
     @State private var microphones: [AudioInputDevice] = []
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var levelMonitor = MicLevelMonitor()
 
     var body: some View {
         @Bindable var preferences = model.preferences
@@ -117,6 +147,18 @@ private struct GeneralPane: View {
                     Label("That microphone isn't connected, so the system default is used.", systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.secondary)
                         .symbolRenderingMode(.multicolor)
+                }
+                LabeledContent("Level") {
+                    HStack(spacing: 12) {
+                        LevelMeter(level: levelMonitor.level)
+                        Button(levelMonitor.isRunning ? "Stop" : "Test") {
+                            if levelMonitor.isRunning {
+                                levelMonitor.stop()
+                            } else {
+                                levelMonitor.start(deviceUID: model.preferences.microphoneUID)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -137,15 +179,28 @@ private struct GeneralPane: View {
 
             Section("Support") {
                 LabeledContent {
-                    Link(destination: Brand.supportURL) {
-                        Label("Buy Me a Coffee", systemImage: "cup.and.saucer.fill")
-                    }
+                    Link("Buy Me a Coffee", destination: Brand.supportURL)
                 } label: {
-                    Text("Enjoying Blabberflow?")
-                    Text("It's made by one person and isn't sold on the App Store. If it saves you time, a coffee helps.")
+                    HStack(spacing: 12) {
+                        SidebarTile(colors: [Color(red: 1.00, green: 0.60, blue: 0.48), Color(red: 0.85, green: 0.31, blue: 0.18)], size: 28) {
+                            Image(systemName: "cup.and.saucer")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Enjoying Blabberflow?")
+                            Text("Made by one person, not sold on the App Store. A coffee helps.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
         }
+        .onChange(of: model.preferences.microphoneUID) { _, uid in
+            if levelMonitor.isRunning { levelMonitor.restart(deviceUID: uid) }
+        }
+        .onDisappear { levelMonitor.stop() }
         .task {
             // Microphones come and go (USB, iPhone Continuity), so keep the list fresh while visible.
             while !Task.isCancelled {
