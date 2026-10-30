@@ -46,7 +46,11 @@ private let log = Logger(subsystem: "com.chrisyeh.Blabberflow", category: "Dicta
 @Observable
 final class AppModel {
     let preferences = Preferences()
-    let history = HistoryStore()
+    let history: HistoryStore
+
+    init(history: HistoryStore = HistoryStore()) {
+        self.history = history
+    }
 
     var pillState = PillState.idle
     /// The words recognised so far, shown above the pill when live preview is on.

@@ -47,10 +47,13 @@ final class HistoryStore {
     let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    init() {
+    /// - Parameter inMemory: Keeps nothing on disk; for previews and screenshots with sample data.
+    init(inMemory: Bool = false) {
         let folder = URL.applicationSupportDirectory.appending(path: "Blabberflow", directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let configuration = ModelConfiguration(url: folder.appending(path: "Blabberflow.store"))
+        if !inMemory { try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) }
+        let configuration = inMemory
+            ? ModelConfiguration(isStoredInMemoryOnly: true)
+            : ModelConfiguration(url: folder.appending(path: "Blabberflow.store"))
         do {
             container = try ModelContainer(for: HistoryEntry.self, DictationStat.self, configurations: configuration)
         } catch {
