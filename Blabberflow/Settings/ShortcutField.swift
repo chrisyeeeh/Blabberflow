@@ -4,24 +4,52 @@ import SwiftUI
 
 /// Click, then press a key: a lone modifier (Right ⌥, fn…) when `allowsModifierKey`, or a key with modifiers.
 struct ShortcutField: View {
-    @Binding var shortcut: Shortcut
+    /// `nil` means no shortcut; the field then offers to record one and can be cleared again.
+    @Binding var shortcut: Shortcut?
     var allowsModifierKey = true
     /// Tells the app to stop listening for the current shortcut while recording.
     var onRecordingChange: (Bool) -> Void = { _ in }
+    private let isOptional: Bool
 
     @State private var recorder = ShortcutRecorder()
 
+    init(shortcut: Binding<Shortcut>, allowsModifierKey: Bool = true, onRecordingChange: @escaping (Bool) -> Void = { _ in }) {
+        _shortcut = Binding(get: { shortcut.wrappedValue }, set: { if let value = $0 { shortcut.wrappedValue = value } })
+        self.allowsModifierKey = allowsModifierKey
+        self.onRecordingChange = onRecordingChange
+        isOptional = false
+    }
+
+    init(optional shortcut: Binding<Shortcut?>, allowsModifierKey: Bool = true, onRecordingChange: @escaping (Bool) -> Void = { _ in }) {
+        _shortcut = shortcut
+        self.allowsModifierKey = allowsModifierKey
+        self.onRecordingChange = onRecordingChange
+        isOptional = true
+    }
+
     var body: some View {
-        Button {
-            if recorder.isRecording {
-                recorder.stop()
-            } else {
-                recorder.start(allowsModifierKey: allowsModifierKey) { shortcut = $0 }
+        HStack(spacing: 4) {
+            Button {
+                if recorder.isRecording {
+                    recorder.stop()
+                } else {
+                    recorder.start(allowsModifierKey: allowsModifierKey) { shortcut = $0 }
+                }
+            } label: {
+                Text(recorder.isRecording ? "Press keys…" : shortcut?.display ?? "Record Shortcut")
+                    .monospacedDigit()
+                    .frame(minWidth: 110)
             }
-        } label: {
-            Text(recorder.isRecording ? "Press keys…" : shortcut.display)
-                .monospacedDigit()
-                .frame(minWidth: 110)
+            if isOptional, shortcut != nil, !recorder.isRecording {
+                Button {
+                    shortcut = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("Remove shortcut")
+                .accessibilityLabel("Remove shortcut")
+            }
         }
         .onChange(of: recorder.isRecording) { _, recording in onRecordingChange(recording) }
         .onDisappear { recorder.stop() }

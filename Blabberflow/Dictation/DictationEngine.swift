@@ -19,6 +19,8 @@ final class DictationEngine {
 
     /// Microphone level (RMS, 0…1), delivered on the main actor.
     var onLevel: ((Float) -> Void)?
+    /// The transcript so far while recording, including words not yet final.
+    var onPartial: ((String) -> Void)?
 
     private let capture = AudioCapture()
     private var locale: Locale?
@@ -46,8 +48,10 @@ final class DictationEngine {
     }
 
     /// Starts recording at once; the analyzer catches up from the buffered audio.
-    /// - Parameter device: The microphone to use; `nil` uses the system default.
-    func start(device: AudioDeviceID?) throws {
+    /// - Parameters:
+    ///   - device: The microphone to use; `nil` uses the system default.
+    ///   - vocabulary: Words, names and acronyms the recogniser should favour.
+    func start(device: AudioDeviceID?, vocabulary: [String]) throws {
         guard session == nil else { return }
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else { throw EngineError.microphoneDenied }
         guard let locale, let analyzerFormat else { throw EngineError.notReady }
@@ -67,14 +71,23 @@ final class DictationEngine {
 
         let transcript = Task {
             var text = ""
-            for try await result in transcriber.results where result.isFinal {
+            for try await result in transcriber.results {
                 let segment = String(result.text.characters).trimmingCharacters(in: .whitespaces)
-                guard !segment.isEmpty else { continue }
-                text += text.isEmpty ? segment : " " + segment
+                if result.isFinal, !segment.isEmpty {
+                    text += text.isEmpty ? segment : " " + segment
+                }
+                // Finalised text so far plus the words still being worked out.
+                let volatile = result.isFinal || segment.isEmpty ? "" : segment
+                onPartial?([text, volatile].filter { !$0.isEmpty }.joined(separator: " "))
             }
             return text
         }
-        let started = Task { try await analyzer.start(inputSequence: stream) }
+        let context = AnalysisContext()
+        context.contextualStrings[.general] = vocabulary
+        let started = Task {
+            if !vocabulary.isEmpty { try await analyzer.setContext(context) }
+            try await analyzer.start(inputSequence: stream)
+        }
         session = Session(analyzer: analyzer, input: input, started: started, transcript: transcript)
     }
 

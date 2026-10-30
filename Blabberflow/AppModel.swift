@@ -33,8 +33,14 @@ private let log = Logger(subsystem: "com.chrisyeh.Blabberflow", category: "Dicta
 @Observable
 final class AppModel {
     let preferences = Preferences()
+    let history = HistoryStore()
 
     var pillState = PillState.idle
+    /// The words recognised so far, shown above the pill when live preview is on.
+    private(set) var liveText = ""
+    /// The style this dictation will be written in, shown as a chip on the pill.
+    private(set) var activeStyleName: String?
+    var appleIntelligence = AppleIntelligenceStatus.current
     /// Recent microphone levels, newest first, each 0…1.
     var levels: [Float] = Array(repeating: 0, count: 5)
     var recent: [Transcript] = []
@@ -101,6 +107,11 @@ final class AppModel {
     @ObservationIgnored private let hotkey = HotkeyMonitor()
     @ObservationIgnored private let engine = DictationEngine()
     @ObservationIgnored private let inserter = TextInserter()
+    @ObservationIgnored private let rewriter = StyleRewriter()
+    @ObservationIgnored private var sessionStyle = Style.builtIn[0]
+    /// The style of the shortcut that was just pressed; `nil` is the main shortcut.
+    @ObservationIgnored private var pressedStyleID: UUID?
+    @ObservationIgnored private var releasedAt = Date.now
     @ObservationIgnored private lazy var pill = PillPanel(model: self)
     @ObservationIgnored private var startError: Error?
     @ObservationIgnored private var targetAppName: String?
@@ -118,9 +129,18 @@ final class AppModel {
     func start() {
         hotkey.onEvent = { [weak self] in self?.handle($0) }
         engine.onLevel = { [weak self] in self?.push(level: $0) }
+        engine.onPartial = { [weak self] text in
+            guard let self, self.phase == .listening || self.phase == .pending else { return }
+            self.liveText = text
+        }
         preferences.onChange = { [weak self] in self?.applyPreferences() }
         applyPreferences()
         pill.show()
+
+        history.prune(olderThan: preferences.historyRetentionDays)
+        if preferences.keepsHistory {
+            recent = history.latest(10).map { Transcript(text: $0.text, appName: $0.appName, date: $0.date) }
+        }
 
         lastOtherApp = NSWorkspace.shared.frontmostApplication
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
@@ -162,6 +182,24 @@ final class AppModel {
     func refreshPermissions() {
         hasAccessibility = AXIsProcessTrusted()
         hasMicrophone = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        appleIntelligence = .current
+    }
+
+    /// Deletes saved transcripts; Insights keep their counts.
+    func clearHistory() {
+        history.clearHistory()
+        recent.removeAll()
+    }
+
+    func resetInsights() {
+        history.resetInsights()
+    }
+
+    /// Rewrites sample text in a style, for "Try it" in Settings.
+    func preview(_ text: String, in style: Style) async throws -> String {
+        let corrected = Vocabulary.apply(preferences.dictionary, to: text)
+        guard !style.isLiteral else { return corrected }
+        return Vocabulary.apply(preferences.dictionary, to: try await rewriter.rewrite(corrected, style: style, dictionary: preferences.dictionary))
     }
 
     /// "Start Dictation" in the menu: records hands-free until the pill's stop button or the shortcut.
@@ -188,7 +226,12 @@ final class AppModel {
     // MARK: Setup
 
     private func applyPreferences() {
-        hotkey.dictationShortcut = preferences.dictationShortcut
+        var bindings = [DictationBinding(shortcut: preferences.dictationShortcut)]
+        for style in preferences.styles {
+            guard let shortcut = style.shortcut, !bindings.contains(where: { $0.shortcut == shortcut }) else { continue }
+            bindings.append(DictationBinding(shortcut: shortcut, style: style.id))
+        }
+        if hotkey.bindings != bindings { hotkey.bindings = bindings }
         hotkey.pasteLastShortcut = preferences.pasteLastShortcut
     }
 
@@ -226,6 +269,7 @@ final class AppModel {
         case .pasteLast:
             pasteLast()
         case .pressed, .released, .keyWhileHeld:
+            if case .pressed(let style) = event, phase == .idle { pressedStyleID = style }
             switch preferences.activationMode {
             case .hold: handleHold(event)
             case .toggle: handleToggle(event)
@@ -244,7 +288,8 @@ final class AppModel {
 
     /// A modifier key toggles on a clean tap, so ⌥-shortcuts keep working; a key combo toggles on press.
     private func handleToggle(_ event: HotkeyEvent) {
-        let isModifierKey = preferences.dictationShortcut.isModifierKey
+        let shortcut = pressedStyleID.flatMap { preferences.style(id: $0).shortcut } ?? preferences.dictationShortcut
+        let isModifierKey = shortcut.isModifierKey
         switch event {
         case .pressed:
             if phase == .listening {
@@ -301,8 +346,12 @@ final class AppModel {
         microphoneName = device?.name ?? "the microphone"
         peakLevel = 0
         startError = nil
+        liveText = ""
+        sessionStyle = preferences.style(id: pressedStyleID)
+        pressedStyleID = nil
+        rewriter.prepare(style: sessionStyle, dictionary: preferences.dictionary)
         do {
-            try engine.start(device: device?.id)
+            try engine.start(device: device?.id, vocabulary: preferences.dictionary)
             log.info("Recording from \(self.microphoneName, privacy: .public)")
         } catch {
             startError = error
@@ -318,6 +367,7 @@ final class AppModel {
         listeningSince = .now
         pill.show()
         pill.acceptsClicks = isHandsFree
+        activeStyleName = sessionStyle.isLiteral && preferences.defaultStyle.isLiteral ? nil : sessionStyle.name
         pillState = .listening
         announce("Listening")
     }
@@ -328,6 +378,7 @@ final class AppModel {
             cancelDictation()
         case .listening:
             phase = .processing
+            releasedAt = .now
             pill.acceptsClicks = false
             pillState = .processing
             Task { await finishDictation() }
@@ -338,13 +389,11 @@ final class AppModel {
 
     private func finishDictation() async {
         do {
-            let text = try await engine.finish()
+            let heard = try await engine.finish()
             guard phase == .processing else { return } // Cancelled with Escape.
-            phase = .idle
-            isHandsFree = false
-            hotkey.capturesEscape = false
-            log.info("Transcribed \(text.count) characters, peak level \(self.peakLevel)")
-            guard !text.isEmpty else {
+            log.info("Transcribed \(heard.count) characters, peak level \(self.peakLevel)")
+            guard !heard.isEmpty else {
+                finishProcessing()
                 if peakLevel < silenceLevel {
                     flash(.error("No audio from \(microphoneName)"), for: .seconds(4))
                 } else {
@@ -352,8 +401,11 @@ final class AppModel {
                 }
                 return
             }
-            recent.insert(Transcript(text: text, appName: targetAppName, date: .now), at: 0)
-            recent = Array(recent.prefix(50))
+
+            let text = await styled(Vocabulary.apply(preferences.dictionary, to: heard))
+            guard phase == .processing else { return } // Cancelled while rewriting.
+            finishProcessing()
+            record(heard: heard, text: text)
             await insert(text)
         } catch {
             phase = .idle
@@ -364,7 +416,46 @@ final class AppModel {
         }
     }
 
+    private func finishProcessing() {
+        phase = .idle
+        isHandsFree = false
+        hotkey.capturesEscape = false
+        liveText = ""
+    }
+
+    /// Rewrites in the session's style with Apple Intelligence; any problem inserts what was heard instead.
+    private func styled(_ transcript: String) async -> String {
+        guard StyleRewriter.needsRewrite(transcript, style: sessionStyle) else { return transcript }
+        guard appleIntelligence == .ready || AppleIntelligenceStatus.current == .ready else {
+            log.info("Apple Intelligence unavailable; inserting the transcript as heard")
+            return transcript
+        }
+        do {
+            let rewritten = try await rewriter.rewrite(transcript, style: sessionStyle, dictionary: preferences.dictionary)
+            return rewritten.isEmpty ? transcript : Vocabulary.apply(preferences.dictionary, to: rewritten)
+        } catch {
+            log.error("Rewrite failed: \(error.localizedDescription, privacy: .public)")
+            return transcript
+        }
+    }
+
+    /// Adds to the menu's recent list, saved history (if on) and the Insights counts (always; no text).
+    private func record(heard: String, text: String) {
+        let now = Date.now
+        recent.insert(Transcript(text: text, appName: targetAppName, date: now), at: 0)
+        recent = Array(recent.prefix(10))
+        let words = heard.split(whereSeparator: \.isWhitespace).count
+        history.add(DictationStat(date: now, words: words, duration: releasedAt.timeIntervalSince(listeningSince)))
+        if preferences.keepsHistory {
+            history.add(HistoryEntry(
+                date: now, text: text, heard: heard, appName: targetAppName,
+                styleName: sessionStyle.name, processingTime: now.timeIntervalSince(releasedAt)
+            ))
+        }
+    }
+
     private func cancelDictation() {
+        liveText = ""
         holdTask?.cancel()
         engine.cancel()
         hotkey.capturesEscape = false
