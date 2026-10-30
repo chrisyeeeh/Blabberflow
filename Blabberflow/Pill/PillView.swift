@@ -5,14 +5,25 @@ struct PillView: View {
     let model: AppModel
 
     var body: some View {
-        content
-            .id(contentKey)
-            .transition(.opacity.combined(with: .scale(scale: 0.85)))
-            .frame(height: model.pillState == .idle ? 7 : 40)
-            .glassEffect(.regular, in: .capsule)
-            .opacity(model.isPaused && model.pillState == .idle ? 0 : 1)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: model.pillState)
+        VStack(spacing: 8) {
+            if showsPreview {
+                LivePreview(text: model.liveText)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
+            }
+            content
+                .id(contentKey)
+                .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                .frame(height: model.pillState == .idle ? 7 : 40)
+                .glassEffect(.regular, in: .capsule)
+                .opacity(model.isPaused && model.pillState == .idle ? 0 : 1)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: model.pillState)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showsPreview)
+    }
+
+    private var showsPreview: Bool {
+        model.preferences.showsLivePreview && model.pillState == .listening && !model.liveText.isEmpty
     }
 
     /// Changes only when the layout changes, so the waveform doesn't re-transition on every level update.
@@ -38,11 +49,14 @@ struct PillView: View {
             HStack(spacing: 12) {
                 RecordingDot()
                 Waveform(levels: model.levels)
+                if let style = model.activeStyleName {
+                    StyleChip(name: style)
+                }
             }
             .padding(.leading, 9)
             .padding(.trailing, 16)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Listening")
+            .accessibilityLabel(model.activeStyleName.map { "Listening, \($0) style" } ?? "Listening")
         case .processing:
             ShimmerLine()
                 .padding(.horizontal, 18)
@@ -94,6 +108,72 @@ private struct HandsFreeControls: View {
         .buttonStyle(.plain)
         .padding(.leading, 14)
         .padding(.trailing, 6)
+    }
+}
+
+/// Which style will be applied, after a hairline divider.
+private struct StyleChip: View {
+    let name: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Rectangle()
+                .fill(.secondary.opacity(0.5))
+                .frame(width: 0.5, height: 16)
+            Text(name)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize()
+        }
+    }
+}
+
+/// The words so far, above the pill. Grows like a chat box: one hugging line, then wider, then taller,
+/// and past about six lines it scrolls, pinned to the newest words.
+private struct LivePreview: View {
+    let text: String
+
+    static let maxTextWidth: CGFloat = 428
+    static let maxTextHeight: CGFloat = 112
+
+    /// The wrapped text's full height, so the bubble hugs it until it reaches the cap.
+    @State private var textHeight: CGFloat = 0
+
+    var body: some View {
+        let isClipped = textHeight > Self.maxTextHeight
+        ViewThatFits(in: .horizontal) {
+            bubble(Text(text).font(.system(size: 13)).fixedSize())
+            bubble(
+                // Bottom-aligned in a shorter frame, the oldest lines slide out of the top as you talk.
+                wrapped
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { textHeight = $0 }
+                    .frame(width: Self.maxTextWidth, height: min(max(textHeight, 16), Self.maxTextHeight), alignment: .bottom)
+                    .clipped()
+                    .mask {
+                        LinearGradient(
+                            stops: [.init(color: isClipped ? .clear : .black, location: 0), .init(color: .black, location: 0.2)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    }
+            )
+        }
+        .frame(maxWidth: Self.maxTextWidth + 32)
+        .animation(.easeOut(duration: 0.15), value: text)
+        .accessibilityHidden(true) // VoiceOver hears "Listening"; announcing every word would be noise.
+    }
+
+    private var wrapped: some View {
+        Text(text)
+            .font(.system(size: 13))
+            .frame(width: Self.maxTextWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func bubble(_ content: some View) -> some View {
+        content
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .glassEffect(.regular, in: .rect(cornerRadius: 16))
     }
 }
 

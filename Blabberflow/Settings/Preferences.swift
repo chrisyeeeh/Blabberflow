@@ -107,6 +107,51 @@ struct Shortcut: Codable, Hashable {
     }
 }
 
+/// A tone the transcript is rewritten in by Apple Intelligence, or Literal for exactly what was said.
+struct Style: Codable, Hashable, Identifiable {
+    var id = UUID()
+    var name: String
+    /// What the model is told about the tone. Empty for Literal.
+    var instructions: String
+    /// Dictates straight into this style, alongside the main dictation shortcut.
+    var shortcut: Shortcut?
+
+    var isLiteral: Bool { id == Self.literalID }
+
+    static let literalID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+    static let cleanID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+    static let aiPromptID = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
+
+    /// For talking to an assistant like Claude: what you want done and every detail, organised as a prompt.
+    static let aiPrompt = Style(
+        id: aiPromptID,
+        name: "AI prompt",
+        instructions: "Turn it into a clear prompt for an AI assistant, written in the speaker's first-person voice. First line: the main thing they want, in one sentence. Then every other request, detail and constraint they mentioned, each as its own \"- \" bullet, in their order; never drop or merge one. If they said how they want the answer (length, format), end with a line saying so; otherwise leave it out. Don't add anything they didn't say."
+    )
+
+    static let builtIn: [Style] = [
+        Style(id: literalID, name: "Literal", instructions: ""),
+        Style(
+            id: cleanID,
+            name: "Clean",
+            instructions: "Remove filler words (um, uh, like, you know), false starts and repeated words. Apply spoken corrections such as \"no wait, Thursday\". Fix punctuation and capitalisation. Keep the speaker's own words and meaning."
+        ),
+        Style(
+            name: "Formal",
+            instructions: "Write it as a polished, professional message: complete sentences, correct grammar, no slang. Keep greetings and sign-offs the speaker said."
+        ),
+        Style(
+            name: "Casual",
+            instructions: "Make it friendly and relaxed, like a chat message: drop ums and uhs, contractions are fine, light punctuation, no full stop at the very end."
+        ),
+        aiPrompt,
+        Style(
+            name: "Bullet points",
+            instructions: "Format it as a bulleted list: split what was said into separate ideas and put each on its own line starting with \"- \". Keep each bullet short and in the speaker's words."
+        ),
+    ]
+}
+
 /// Settings that persist in UserDefaults.
 @Observable
 final class Preferences {
@@ -115,15 +160,40 @@ final class Preferences {
     var activationMode: ActivationMode { didSet { save(activationMode, Key.activationMode) } }
     /// Core Audio UID of the chosen input. `nil` follows the system default.
     var microphoneUID: String? { didSet { save(microphoneUID, Key.microphoneUID) } }
+    var styles: [Style] { didSet { save(styles, Key.styles) } }
+    /// The style the main dictation shortcut uses.
+    var defaultStyleID: UUID { didSet { save(defaultStyleID, Key.defaultStyleID) } }
+    /// Names, words and acronyms the transcriber should favour and spell exactly.
+    var dictionary: [String] { didSet { save(dictionary, Key.dictionary) } }
+    var keepsHistory: Bool { didSet { save(keepsHistory, Key.keepsHistory) } }
+    /// Days of history to keep; 0 keeps everything.
+    var historyRetentionDays: Int { didSet { save(historyRetentionDays, Key.historyRetentionDays) } }
+    /// Shows the words above the pill as they're recognised.
+    var showsLivePreview: Bool { didSet { save(showsLivePreview, Key.showsLivePreview) } }
 
     /// Called after any preference changes.
     @ObservationIgnored var onChange: (() -> Void)?
+
+    var defaultStyle: Style {
+        styles.first { $0.id == defaultStyleID } ?? styles.first { $0.isLiteral } ?? Style.builtIn[0]
+    }
+
+    func style(id: UUID?) -> Style {
+        guard let id else { return defaultStyle }
+        return styles.first { $0.id == id } ?? defaultStyle
+    }
 
     private enum Key {
         static let dictationShortcut = "dictationShortcut"
         static let pasteLastShortcut = "pasteLastShortcut"
         static let activationMode = "activationMode"
         static let microphoneUID = "microphoneUID"
+        static let styles = "styles"
+        static let defaultStyleID = "defaultStyleID"
+        static let dictionary = "dictionary"
+        static let keepsHistory = "keepsHistory"
+        static let historyRetentionDays = "historyRetentionDays"
+        static let showsLivePreview = "showsLivePreview"
     }
 
     init() {
@@ -131,6 +201,24 @@ final class Preferences {
         pasteLastShortcut = Self.load(Key.pasteLastShortcut) ?? .pasteLastDefault
         activationMode = Self.load(Key.activationMode) ?? .hold
         microphoneUID = Self.load(Key.microphoneUID) ?? nil
+        var styles: [Style] = Self.load(Key.styles) ?? Style.builtIn
+        if !styles.contains(where: \.isLiteral) { styles.insert(Style.builtIn[0], at: 0) }
+        // Styles added in later versions reach people who already have a saved list.
+        if !styles.contains(where: { $0.id == Style.aiPromptID }) { styles.append(Style.aiPrompt) }
+        // Bring saved built-in prompts up to date, unless the user has edited them.
+        let updatedPrompts = [
+            "Make it friendly and relaxed, like a chat message: contractions are fine, light punctuation, no full stop at the very end.":
+                "Make it friendly and relaxed, like a chat message: drop ums and uhs, contractions are fine, light punctuation, no full stop at the very end.",
+        ]
+        for index in styles.indices {
+            if let updated = updatedPrompts[styles[index].instructions] { styles[index].instructions = updated }
+        }
+        self.styles = styles
+        defaultStyleID = Self.load(Key.defaultStyleID) ?? Style.cleanID
+        dictionary = Self.load(Key.dictionary) ?? []
+        keepsHistory = Self.load(Key.keepsHistory) ?? true
+        historyRetentionDays = Self.load(Key.historyRetentionDays) ?? 30
+        showsLivePreview = Self.load(Key.showsLivePreview) ?? false
     }
 
     private func save<Value: Encodable>(_ value: Value, _ key: String) {
