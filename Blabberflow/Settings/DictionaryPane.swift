@@ -7,7 +7,7 @@ struct DictionaryPane: View {
     private var trimmed: String { newTerm.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
-        Page(title: "Dictionary", subtitle: "Names, words and acronyms Blabberflow should always get right.") {
+        Page(title: "Dictionary", subtitle: "Names, words and acronyms BlabberFlow should always get right.") {
             Section {
                 HStack {
                     TextField("Add a word, name or acronym", text: $newTerm)
@@ -17,7 +17,7 @@ struct DictionaryPane: View {
                         .disabled(trimmed.isEmpty)
                 }
             } footer: {
-                Text("Type each one the way you want it written, like GitHub, Siobhan or OKR. Blabberflow listens out for them and fixes their spelling and capitals, even when you say “a p i” or “git hub”.")
+                Text("Type each one the way you want it written, like GitHub, Siobhan or OKR. BlabberFlow listens out for them and fixes their spelling and capitals, even when you say “a p i” or “git hub”.")
             }
 
             Section(model.preferences.dictionary.isEmpty ? "Words" : "\(model.preferences.dictionary.count) words") {

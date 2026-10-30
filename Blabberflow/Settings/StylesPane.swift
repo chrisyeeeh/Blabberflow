@@ -109,7 +109,7 @@ private struct StyleEditor: View {
                     } header: {
                         Text("How to rewrite")
                     } footer: {
-                        Text("Describe the tone. Blabberflow already tells Apple Intelligence to keep your meaning and never answer what you said.")
+                        Text("Describe the tone. BlabberFlow already tells Apple Intelligence to keep your meaning and never answer what you said.")
                     }
                 }
 

@@ -85,7 +85,7 @@ final class AppModel {
         if !hasAccessibility { return "Needs Accessibility access" }
         if !hasMicrophone { return "Needs microphone access" }
         switch speechStatus {
-        case .ready: return isPaused ? "Blabberflow is paused" : "Blabberflow is ready"
+        case .ready: return isPaused ? "BlabberFlow is paused" : "BlabberFlow is ready"
         case .preparing, .downloading, .failed: return speechStatus.summary
         }
     }

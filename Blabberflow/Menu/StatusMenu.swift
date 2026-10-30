@@ -34,7 +34,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private func updateIcon() {
         let listening = model.isListening
         statusItem.button?.image = listening ? Brand.menuBarPill : Brand.menuBarIcon
-        statusItem.button?.setAccessibilityLabel(listening ? "Blabberflow, listening" : "Blabberflow")
+        statusItem.button?.setAccessibilityLabel(listening ? "BlabberFlow, listening" : "BlabberFlow")
     }
 
     private func observeListening() {
@@ -83,7 +83,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(microphoneItem())
         menu.addItem(modeItem())
-        let pause = item("Pause Blabberflow", action: #selector(togglePause))
+        let pause = item("Pause BlabberFlow", action: #selector(togglePause))
         pause.state = model.isPaused ? .on : .off
         menu.addItem(pause)
 
@@ -92,7 +92,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         let coffee = item("Buy Me a Coffee…", action: #selector(buyCoffee))
         coffee.image = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: nil)
         menu.addItem(coffee)
-        menu.addItem(item("Quit Blabberflow", action: #selector(quit), key: "q"))
+        menu.addItem(item("Quit BlabberFlow", action: #selector(quit), key: "q"))
     }
 
     private func microphoneItem() -> NSMenuItem {

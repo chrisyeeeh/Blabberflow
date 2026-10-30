@@ -148,7 +148,7 @@ private struct GeneralPane: View {
 
     var body: some View {
         @Bindable var preferences = model.preferences
-        Page(title: "General", subtitle: "Blabberflow runs entirely on this Mac. Nothing you say leaves it.") {
+        Page(title: "General", subtitle: "BlabberFlow runs entirely on this Mac. Nothing you say leaves it.") {
             Section("Microphone") {
                 Picker("Input", selection: $preferences.microphoneUID) {
                     Text("System default — \(defaultMicrophoneName)").tag(String?.none)
@@ -217,7 +217,7 @@ private struct GeneralPane: View {
             }
 
             Section("Startup") {
-                Toggle("Open Blabberflow when you log in", isOn: $launchAtLogin)
+                Toggle("Open BlabberFlow when you log in", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
             }
 
@@ -232,7 +232,7 @@ private struct GeneralPane: View {
                                 .foregroundStyle(.white)
                         }
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("Enjoying Blabberflow?")
+                            Text("Enjoying BlabberFlow?")
                             Text("Made by one person, not sold on the App Store. A coffee helps.")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
@@ -385,13 +385,13 @@ private struct PrivacyPane: View {
                     title: "Accessibility",
                     detail: model.hasAccessibility
                         ? "Allowed"
-                        : "Turn on Blabberflow in Privacy & Security › Accessibility",
+                        : "Turn on BlabberFlow in Privacy & Security › Accessibility",
                     granted: model.hasAccessibility,
                     pane: "Privacy_Accessibility"
                 )
             }
             Section("Why Accessibility?") {
-                Text("Blabberflow uses it to notice your dictation shortcut in any app and to type the result where your cursor is. It only acts while you're dictating.")
+                Text("BlabberFlow uses it to notice your dictation shortcut in any app and to type the result where your cursor is. It only acts while you're dictating.")
                     .foregroundStyle(.secondary)
             }
         }

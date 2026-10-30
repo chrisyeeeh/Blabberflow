@@ -46,7 +46,7 @@ final class SettingsWindowController {
         window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.title = "Blabberflow Settings"
+        window.title = "BlabberFlow Settings"
         window.isReleasedWhenClosed = false
         window.center()
         window.setFrameAutosaveName("Settings")
