@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# Builds a notarized Blabberflow DMG ready to upload.
+# Builds a notarized BlabberFlow DMG ready to upload.
 #
 #   scripts/release.sh
 #
 # Steps: archive (Release) → export signed with Developer ID → notarize and staple
 # the app → build a drag-to-Applications DMG → sign, notarize and staple the DMG.
-# The result lands in build/release/Blabberflow-<version>.dmg.
+# The result lands in build/release/BlabberFlow-<version>.dmg.
 #
 # One-time setup
 #   1. Developer ID certificate: Xcode › Settings › Accounts › your team ›
@@ -30,6 +30,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECT="$ROOT/Blabberflow.xcodeproj"
 SCHEME="Blabberflow"
 APP_NAME="Blabberflow"
+# What people see: the DMG file and the mounted volume.
+DISPLAY_NAME="BlabberFlow"
 TEAM_ID="H6978Q2SN2"
 NOTARY_PROFILE="${NOTARY_PROFILE:-blabberflow-notary}"
 OUT="$ROOT/build/release"
@@ -70,12 +72,12 @@ settings="$(xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Rele
 VERSION="$(awk '$1 == "MARKETING_VERSION" { print $3; exit }' <<< "$settings")"
 BUILD="$(awk '$1 == "CURRENT_PROJECT_VERSION" { print $3; exit }' <<< "$settings")"
 [[ -n "$VERSION" && -n "$BUILD" ]] || fail "Couldn't read the version from the project."
-echo "Releasing $APP_NAME $VERSION ($BUILD)"
+echo "Releasing $DISPLAY_NAME $VERSION ($BUILD)"
 
 ARCHIVE="$OUT/$APP_NAME.xcarchive"
 EXPORT="$OUT/export"
 APP="$EXPORT/$APP_NAME.app"
-DMG="$OUT/$APP_NAME-$VERSION.dmg"
+DMG="$OUT/$DISPLAY_NAME-$VERSION.dmg"
 
 rm -rf "${OUT:?}"
 mkdir -p "$OUT"
@@ -103,7 +105,7 @@ STAGE="$OUT/dmg"
 mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/$APP_NAME.app"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "$APP_NAME" -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov "$DMG" > /dev/null
+hdiutil create -volname "$DISPLAY_NAME" -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov "$DMG" > /dev/null
 codesign --sign "$IDENTITY" --timestamp "$DMG"
 
 step "Notarizing the DMG"

@@ -1,15 +1,22 @@
 import Carbon.HIToolbox
 import CoreGraphics
+import Foundation
 
 enum HotkeyEvent {
-    /// The dictation shortcut went down.
-    case pressed
-    /// The dictation shortcut came up.
+    /// A dictation shortcut went down. `style` is set for a style's own shortcut, `nil` for the main one.
+    case pressed(style: UUID?)
+    /// The held dictation shortcut came up.
     case released
     /// Another key was pressed while a modifier-key shortcut was held, so this is probably an ordinary shortcut.
     case keyWhileHeld
     case escape
     case pasteLast
+}
+
+/// A shortcut that starts dictation, optionally in a particular style.
+struct DictationBinding: Equatable {
+    var shortcut: Shortcut
+    var style: UUID?
 }
 
 /// Watches the keyboard through a Core Graphics event tap. Needs Accessibility permission.
@@ -18,13 +25,15 @@ final class HotkeyMonitor {
     var isEnabled = true
     /// When true, Escape is consumed instead of reaching the front app.
     var capturesEscape = false
-    var dictationShortcut = Shortcut.rightOption {
-        didSet { isHeld = false }
+    /// The main shortcut first, then each style's. The first binding for a shortcut wins.
+    var bindings: [DictationBinding] = [DictationBinding(shortcut: .rightOption)] {
+        didSet { held = nil }
     }
     var pasteLastShortcut = Shortcut.pasteLastDefault
 
     private var tap: CFMachPort?
-    private var isHeld = false
+    /// The binding whose key is down right now.
+    private var held: DictationBinding?
 
     /// Returns false while Accessibility access has not been granted.
     @discardableResult
@@ -50,7 +59,6 @@ final class HotkeyMonitor {
     /// Returns true when the event should be swallowed.
     fileprivate func handle(_ type: CGEventType, _ event: CGEvent) -> Bool {
         let code = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-        let shortcut = dictationShortcut
 
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
@@ -58,8 +66,16 @@ final class HotkeyMonitor {
             return false
 
         case .flagsChanged:
-            guard code == shortcut.keyCode, let mask = shortcut.deviceMask else { return false }
-            setHeld(event.flags.rawValue & mask != 0)
+            if let held, held.shortcut.isModifierKey {
+                guard code == held.shortcut.keyCode, let mask = held.shortcut.deviceMask else { return false }
+                if event.flags.rawValue & mask == 0 { release() }
+                return false
+            }
+            guard held == nil,
+                  let binding = bindings.first(where: { $0.shortcut.isModifierKey && $0.shortcut.keyCode == code }),
+                  let mask = binding.shortcut.deviceMask,
+                  event.flags.rawValue & mask != 0 else { return false }
+            press(binding)
             return false
 
         case .keyDown:
@@ -69,11 +85,13 @@ final class HotkeyMonitor {
                 onEvent?(.escape)
                 return true
             }
-            if !shortcut.isModifierKey, code == shortcut.keyCode, modifiers == shortcut.modifiers {
-                if !isRepeat { setHeld(true) }
+            if let binding = bindings.first(where: {
+                !$0.shortcut.isModifierKey && $0.shortcut.keyCode == code && $0.shortcut.modifiers == modifiers
+            }) {
+                if !isRepeat, held == nil { press(binding) }
                 return isEnabled
             }
-            if isHeld, shortcut.isModifierKey {
+            if let held, held.shortcut.isModifierKey {
                 if isEnabled { onEvent?(.keyWhileHeld) }
                 return false
             }
@@ -84,8 +102,8 @@ final class HotkeyMonitor {
             return false
 
         case .keyUp:
-            guard !shortcut.isModifierKey, code == shortcut.keyCode, isHeld else { return false }
-            setHeld(false)
+            guard let held, !held.shortcut.isModifierKey, code == held.shortcut.keyCode else { return false }
+            release()
             return isEnabled
 
         default:
@@ -93,10 +111,14 @@ final class HotkeyMonitor {
         }
     }
 
-    private func setHeld(_ down: Bool) {
-        guard down != isHeld else { return }
-        isHeld = down
-        if isEnabled { onEvent?(down ? .pressed : .released) }
+    private func press(_ binding: DictationBinding) {
+        held = binding
+        if isEnabled { onEvent?(.pressed(style: binding.style)) }
+    }
+
+    private func release() {
+        held = nil
+        if isEnabled { onEvent?(.released) }
     }
 }
 
