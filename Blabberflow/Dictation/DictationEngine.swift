@@ -34,13 +34,22 @@ final class DictationEngine {
         let transcript: Task<String, Error>
     }
 
-    /// Picks the transcriber locale and downloads its model if needed. Call once at launch.
-    func prepare() async throws {
+    /// Picks the transcriber locale and downloads its model if needed. Call at launch, and again to retry.
+    /// - Parameter onDownload: Called on the main actor with the language name and 0…1 while downloading.
+    func prepare(onDownload: @escaping @MainActor @Sendable (String, Double) -> Void) async throws {
         guard let locale = await SpeechTranscriber.supportedLocale(equivalentTo: .current) else {
             throw EngineError.unsupportedLocale
         }
         let transcriber = SpeechTranscriber(locale: locale, preset: .progressiveTranscription)
         if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
+            let language = Locale.current.localizedString(forLanguageCode: locale.language.languageCode?.identifier ?? "")
+                ?? locale.identifier
+            onDownload(language, 0)
+            let observation = request.progress.observe(\.fractionCompleted) { progress, _ in
+                let fraction = progress.fractionCompleted
+                Task { @MainActor in onDownload(language, fraction) }
+            }
+            defer { observation.invalidate() }
             try await request.downloadAndInstall()
         }
         analyzerFormat = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber])

@@ -53,6 +53,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         menu.addItem(header)
+        if case .failed = model.speechStatus {
+            menu.addItem(item("Retry Speech Model Download", action: #selector(retrySpeech)))
+        }
         menu.addItem(.separator())
 
         let paste = item("Paste Last Transcript", action: #selector(pasteLast))
@@ -141,6 +144,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     @objc private func pasteLast() { model.pasteLast() }
     @objc private func startDictation() { model.startDictationFromMenu() }
     @objc private func togglePause() { model.isPaused.toggle() }
+    @objc private func retrySpeech() { model.retrySpeech() }
     @objc private func showSettings() { openSettings() }
     @objc private func buyCoffee() { NSWorkspace.shared.open(Brand.supportURL) }
     @objc private func quit() { NSApp.terminate(nil) }

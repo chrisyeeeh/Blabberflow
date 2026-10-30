@@ -16,8 +16,21 @@ enum PillState: Equatable {
 
 enum SpeechStatus: Equatable {
     case preparing
+    /// Fetching the language's model from Apple; `fraction` is 0…1.
+    case downloading(language: String, fraction: Double)
     case ready
     case failed(String)
+
+    /// One line shared by Settings and the menu header, e.g. "Downloading English speech model… 42%".
+    var summary: String {
+        switch self {
+        case .preparing: "Getting the speech model ready…"
+        case .downloading(let language, let fraction):
+            "Downloading \(language) speech model… \(fraction.formatted(.percent.precision(.fractionLength(0))))"
+        case .ready: "Ready"
+        case .failed(let reason): "Speech model unavailable: \(reason)"
+        }
+    }
 }
 
 struct Transcript: Identifiable {
@@ -72,15 +85,18 @@ final class AppModel {
         if !hasAccessibility { return "Needs Accessibility access" }
         if !hasMicrophone { return "Needs microphone access" }
         switch speechStatus {
-        case .preparing: return "Getting the speech model ready…"
-        case .failed(let reason): return reason
         case .ready: return isPaused ? "Blabberflow is paused" : "Blabberflow is ready"
+        case .preparing, .downloading, .failed: return speechStatus.summary
         }
     }
 
     var statusDetail: String {
         if !hasAccessibility || !hasMicrophone { return "Open Settings to allow it" }
-        return "\(shortcutHint) · on-device"
+        switch speechStatus {
+        case .failed: return "Choose Retry below, or in Settings › General"
+        case .preparing, .downloading: return "One time, shared with other apps"
+        case .ready: return "\(shortcutHint) · on-device"
+        }
     }
 
     /// "Hold Right ⌥ to dictate" or "Press Right ⌥ to start and stop".
@@ -248,10 +264,18 @@ final class AppModel {
         log.info("Hotkey monitor running")
     }
 
+    /// Tries the speech model download again after a failure, without relaunching.
+    func retrySpeech() {
+        guard case .failed = speechStatus else { return }
+        Task { await prepareSpeech() }
+    }
+
     private func prepareSpeech() async {
         speechStatus = .preparing
         do {
-            try await engine.prepare()
+            try await engine.prepare { [weak self] language, fraction in
+                self?.speechStatus = .downloading(language: language, fraction: fraction)
+            }
             speechStatus = .ready
             log.info("Speech model ready")
         } catch {

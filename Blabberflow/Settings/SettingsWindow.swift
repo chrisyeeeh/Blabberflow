@@ -186,13 +186,32 @@ private struct GeneralPane: View {
             Section("On-device models") {
                 LabeledContent {
                     switch model.speechStatus {
-                    case .preparing: ProgressView().controlSize(.small)
-                    case .ready: Label("Ready", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                    case .failed(let reason): Text(reason).foregroundStyle(.orange)
+                    case .preparing:
+                        ProgressView().controlSize(.small)
+                    case .downloading(_, let fraction):
+                        HStack(spacing: 8) {
+                            ProgressView(value: fraction).frame(width: 120)
+                            Text(fraction, format: .percent.precision(.fractionLength(0)))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(model.speechStatus.summary)
+                    case .ready:
+                        Label("Ready", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    case .failed(let reason):
+                        HStack(spacing: 8) {
+                            Text(reason).foregroundStyle(.orange).lineLimit(2)
+                            Button("Retry", action: model.retrySpeech)
+                        }
                     }
                 } label: {
                     Text("Speech recognition")
-                    Text("Turns your voice into text. Works with Apple Intelligence on or off.")
+                    if case .downloading = model.speechStatus {
+                        Text(model.speechStatus.summary)
+                    } else {
+                        Text("Turns your voice into text. Works with Apple Intelligence on or off.")
+                    }
                 }
                 AppleIntelligenceRow(status: model.appleIntelligence)
             }
