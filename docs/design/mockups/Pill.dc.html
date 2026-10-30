@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Pill states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#64a8ff}a:hover{color:#9cc6ff}
+.wp{background:radial-gradient(700px 500px at 15% 20%, #33639f 0%, transparent 60%),radial-gradient(700px 600px at 90% 85%, #b86a42 0%, transparent 60%),radial-gradient(600px 400px at 75% 10%, #5c4f99 0%, transparent 60%),#1b2640}
+.pill{background:rgba(20,20,24,0.55);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.35),inset 0 0 0 0.5px rgba(255,255,255,0.12),0 12px 32px rgba(0,0,0,0.35)}
+@keyframes wv{0%,100%{transform:scaleY(0.35)}50%{transform:scaleY(1)}}
+.bar{animation:wv 0.9s ease-in-out infinite;transform-origin:center;width:3px;border-radius:2px;background:#fff;display:block}
+@keyframes sh{0%{background-position:-120px 0}100%{background-position:120px 0}}
+.shimmer{background:linear-gradient(90deg,rgba(255,255,255,0.25) 0%,rgba(255,255,255,0.9) 50%,rgba(255,255,255,0.25) 100%);background-size:120px 100%;animation:sh 1.2s linear infinite}
+.row{display:grid;grid-template-columns:260px minmax(0,1fr) 280px;align-items:center;column-gap:32px;height:84px;border-top:0.5px solid rgba(255,255,255,0.14)}
+</style>
+</helmet>
+<div class="wp" style="width: 1200px; height: 800px; box-sizing: border-box; padding: 40px 56px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, sans-serif; color: #fff">
+  <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.4px">The Pill</h1>
+  <p style="margin: 6px 0 22px; font-size: 14px; color: rgba(255,255,255,0.8)">A Liquid Glass capsule above the Dock. It morphs between states like the Dynamic Island and never takes focus.</p>
+
+  <div class="row">
+    <div><div style="font-size: 15px; font-weight: 600">Idle</div><div style="font-size: 12px; color: rgba(255,255,255,0.75)">Always there, barely</div></div>
+    <div style="display: flex; justify-content: center"><span class="pill" style="width: 40px; height: 7px; border-radius: 4px; display: block"></span></div>
+    <div style="font-size: 12px; color: rgba(255,255,255,0.75)">Hover shows “Hold fn to dictate”. Can be hidden in Settings.</div>
+  </div>
+
+  <div class="row">
+    <div><div style="font-size: 15px; font-weight: 600">Listening</div><div style="font-size: 12px; color: rgba(255,255,255,0.75)">fn held</div></div>
+    <div style="display: flex; justify-content: center">
+      <div class="pill" style="height: 40px; border-radius: 20px; display: flex; align-items: center; gap: 12px; padding: 0 16px 0 10px">
+        <span style="width: 22px; height: 22px; border-radius: 11px; background: #ff453a; display: flex; align-items: center; justify-content: center"><svg width="10" height="14" viewBox="0 0 10 14" aria-hidden="true"><rect x="2.500" y="0.800" width="5" height="8" rx="2.500" fill="#fff"/><path d="M1 6.500a4 4 0 0 0 8 0M5 10.500v2.500" stroke="#fff" stroke-width="1.300" fill="none" stroke-linecap="round"/></svg></span>
+        <div style="display: flex; align-items: center; gap: 3px; height: 22px">
+          <span class="bar" style="height: 8px"></span><span class="bar" style="height: 14px; animation-delay: 0.1s"></span><span class="bar" style="height: 20px; animation-delay: 0.2s"></span><span class="bar" style="height: 12px; animation-delay: 0.3s"></span><span class="bar" style="height: 22px; animation-delay: 0.15s"></span><span class="bar" style="height: 16px; animation-delay: 0.25s"></span><span class="bar" style="height: 10px; animation-delay: 0.05s"></span><span class="bar" style="height: 18px; animation-delay: 0.35s"></span><span class="bar" style="height: 8px; animation-delay: 0.2s"></span>
+        </div>
+        <span style="font-size: 12px; color: rgba(255,255,255,0.75); border-left: 0.5px solid rgba(255,255,255,0.3); padding-left: 10px">Email · Formal</span>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: rgba(255,255,255,0.75)">Style chip shows which tone will apply, read from the front app.</div>
+  </div>
+
+  <div class="row">
+    <div><div style="font-size: 15px; font-weight: 600">Hands-free</div><div style="font-size: 12px; color: rgba(255,255,255,0.75)">Double-tap fn</div></div>
+    <div style="display: flex; justify-content: center">
+      <div class="pill" style="height: 40px; border-radius: 20px; display: flex; align-items: center; gap: 10px; padding: 0 6px 0 14px">
+        <span style="font-size: 12px; font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.85)">0:42</span>
+        <div style="display: flex; align-items: center; gap: 3px; height: 22px">
+          <span class="bar" style="height: 10px"></span><span class="bar" style="height: 18px; animation-delay: 0.1s"></span><span class="bar" style="height: 12px; animation-delay: 0.2s"></span><span class="bar" style="height: 22px; animation-delay: 0.3s"></span><span class="bar" style="height: 14px; animation-delay: 0.15s"></span><span class="bar" style="height: 8px; animation-delay: 0.25s"></span><span class="bar" style="height: 16px; animation-delay: 0.05s"></span>
+        </div>
+        <button type="button" aria-label="Cancel" style="width: 28px; height: 28px; border-radius: 14px; border: 0; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.500 1.500l7 7M8.500 1.500l-7 7" stroke="#fff" stroke-width="1.600" stroke-linecap="round"/></svg></button>
+        <button type="button" aria-label="Stop and insert" style="width: 28px; height: 28px; border-radius: 14px; border: 0; background: #ff453a; display: flex; align-items: center; justify-content: center; cursor: pointer"><span style="width: 9px; height: 9px; border-radius: 2px; background: #fff; display: block"></span></button>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: rgba(255,255,255,0.75)">Tap fn or the red button to insert. Clicking the pill body does nothing, so you can’t stop by accident.</div>
+  </div>
+
+  <div class="row">
+    <div><div style="font-size: 15px; font-weight: 600">Rewrite</div><div style="font-size: 12px; color: rgba(255,255,255,0.75)">Text selected, fn + control</div></div>
+    <div style="display: flex; justify-content: center">
+      <div class="pill" style="height: 40px; border-radius: 20px; display: flex; align-items: center; gap: 12px; padding: 0 16px 0 10px">
+        <span style="width: 22px; height: 22px; border-radius: 11px; background: #bf5af2; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 0.800l1.300 3.300 3.300 1.300-3.300 1.300L6 10.200 4.700 6.700 1.400 5.400l3.300-1.300z" fill="#fff"/></svg></span>
+        <span style="font-size: 13px; font-weight: 600">Rewrite</span>
+        <div style="display: flex; align-items: center; gap: 3px; height: 22px">
+          <span class="bar" style="height: 8px"></span><span class="bar" style="height: 16px; animation-delay: 0.1s"></span><span class="bar" style="height: 20px; animation-delay: 0.2s"></span><span class="bar" style="height: 12px; animation-delay: 0.3s"></span><span class="bar" style="height: 18px; animation-delay: 0.15s"></span>
+        </div>
+        <span style="font-size: 12px; color: rgba(255,255,255,0.75); border-left: 0.5px solid rgba(255,255,255,0.3); padding-left: 10px">84 words selected</span>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: rgba(255,255,255,0.75)">“Make this shorter”, “turn this into bullets”. Apple Intelligence purple marks AI rewriting.</div>
+  </div>
+
+  <div class="row">
+    <div><div style="font-size: 15px; font-weight: 600">Processing</div><div style="font-size: 12px; color: rgba(255,255,255,0.75)">fn released</div></div>
+    <div style="display: flex; justify-content: center">
+      <div class="pill" style="height: 40px; border-radius: 20px; display: flex; align-items: center; gap: 10px; padding: 0 18px">
+        <span class="shimmer" style="width: 120px; height: 4px; border-radius: 2px; display: block"></span>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: rgba(255,255,255,0.75)">Bars collapse into a shimmer line. Usually gone in under a second.</div>
+  </div>
+
+  <div class="row">
+    <div><div style="font-size: 15px; font-weight: 600">Inserted</div><div style="font-size: 12px; color: rgba(255,255,255,0.75)">600 ms, then back to idle</div></div>
+    <div style="display: flex; justify-content: center">
+      <div class="pill" style="height: 40px; border-radius: 20px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 12px">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7.500" fill="#30d158"/><path d="M4.500 8.200l2.300 2.300 4.700-4.800" stroke="#fff" stroke-width="1.800" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font-size: 13px; font-weight: 500">42 words</span>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: rgba(255,255,255,0.75)">VoiceOver reads “Inserted 42 words”.</div>
+  </div>
+
+  <div class="row" style="border-bottom: 0.5px solid rgba(255,255,255,0.14)">
+    <div><div style="font-size: 15px; font-weight: 600">No text field</div><div style="font-size: 12px; color: rgba(255,255,255,0.75)">Nothing to type into</div></div>
+    <div style="display: flex; justify-content: center">
+      <div class="pill" style="height: 40px; border-radius: 20px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 12px">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2.500" width="10" height="12" rx="2" fill="none" stroke="#ffd60a" stroke-width="1.500"/><rect x="5.500" y="1" width="5" height="3" rx="1" fill="#ffd60a"/></svg>
+        <span style="font-size: 13px; font-weight: 500">Copied — ⌘V to paste</span>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: rgba(255,255,255,0.75)">Text is never lost. Other errors use the same shape: “Mic unavailable”, “Secure field”.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

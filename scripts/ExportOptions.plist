@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sign with the Developer ID Application certificate for distribution outside the App Store. -->
+	<key>method</key>
+	<string>developer-id</string>
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<key>teamID</key>
+	<string>H6978Q2SN2</string>
+	<!-- Export locally; release.sh notarizes with notarytool so each step is visible. -->
+	<key>destination</key>
+	<string>export</string>
+</dict>
+</plist>

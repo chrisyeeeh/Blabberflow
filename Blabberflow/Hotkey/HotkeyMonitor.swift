@@ -2,11 +2,11 @@ import Carbon.HIToolbox
 import CoreGraphics
 
 enum HotkeyEvent {
-    /// Right Option went down.
+    /// The dictation shortcut went down.
     case pressed
-    /// Right Option came up.
+    /// The dictation shortcut came up.
     case released
-    /// Another key was pressed while Right Option was held, so this is probably a shortcut.
+    /// Another key was pressed while a modifier-key shortcut was held, so this is probably an ordinary shortcut.
     case keyWhileHeld
     case escape
     case pasteLast
@@ -18,6 +18,10 @@ final class HotkeyMonitor {
     var isEnabled = true
     /// When true, Escape is consumed instead of reaching the front app.
     var capturesEscape = false
+    var dictationShortcut = Shortcut.rightOption {
+        didSet { isHeld = false }
+    }
+    var pasteLastShortcut = Shortcut.pasteLastDefault
 
     private var tap: CFMachPort?
     private var isHeld = false
@@ -26,12 +30,13 @@ final class HotkeyMonitor {
     @discardableResult
     func start() -> Bool {
         guard tap == nil else { return true }
-        let mask = (1 << CGEventType.flagsChanged.rawValue) | (1 << CGEventType.keyDown.rawValue)
+        let types: [CGEventType] = [.flagsChanged, .keyDown, .keyUp]
+        let mask = types.reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
             options: .defaultTap,
-            eventsOfInterest: CGEventMask(mask),
+            eventsOfInterest: mask,
             callback: hotkeyTapCallback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else { return false }
@@ -44,49 +49,56 @@ final class HotkeyMonitor {
 
     /// Returns true when the event should be swallowed.
     fileprivate func handle(_ type: CGEventType, _ event: CGEvent) -> Bool {
+        let code = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+        let shortcut = dictationShortcut
+
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return false
 
         case .flagsChanged:
-            guard event.getIntegerValueField(.keyboardEventKeycode) == Int64(kVK_RightOption) else { return false }
-            let down = event.flags.rawValue & rightOptionDeviceMask != 0
-            if down, !isHeld {
-                isHeld = true
-                if isEnabled { onEvent?(.pressed) }
-            } else if !down, isHeld {
-                isHeld = false
-                if isEnabled { onEvent?(.released) }
-            }
+            guard code == shortcut.keyCode, let mask = shortcut.deviceMask else { return false }
+            setHeld(event.flags.rawValue & mask != 0)
             return false
 
         case .keyDown:
-            let code = event.getIntegerValueField(.keyboardEventKeycode)
-            if code == Int64(kVK_Escape), capturesEscape {
+            let modifiers = Shortcut.Modifiers(event.flags)
+            let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+            if code == UInt16(kVK_Escape), modifiers.isEmpty, capturesEscape {
                 onEvent?(.escape)
                 return true
             }
-            if isHeld {
-                onEvent?(.keyWhileHeld)
+            if !shortcut.isModifierKey, code == shortcut.keyCode, modifiers == shortcut.modifiers {
+                if !isRepeat { setHeld(true) }
+                return isEnabled
+            }
+            if isHeld, shortcut.isModifierKey {
+                if isEnabled { onEvent?(.keyWhileHeld) }
                 return false
             }
-            let flags = event.flags.intersection([.maskCommand, .maskControl, .maskAlternate, .maskShift])
-            let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
-            if isEnabled, !isRepeat, code == Int64(kVK_ANSI_V), flags == [.maskCommand, .maskControl] {
+            if isEnabled, !isRepeat, code == pasteLastShortcut.keyCode, modifiers == pasteLastShortcut.modifiers {
                 onEvent?(.pasteLast)
                 return true
             }
             return false
 
+        case .keyUp:
+            guard !shortcut.isModifierKey, code == shortcut.keyCode, isHeld else { return false }
+            setHeld(false)
+            return isEnabled
+
         default:
             return false
         }
     }
-}
 
-/// `NX_DEVICERALTKEYMASK`: tells the right Option key apart from the left one.
-private let rightOptionDeviceMask: UInt64 = 0x40
+    private func setHeld(_ down: Bool) {
+        guard down != isHeld else { return }
+        isHeld = down
+        if isEnabled { onEvent?(down ? .pressed : .released) }
+    }
+}
 
 nonisolated private func hotkeyTapCallback(
     proxy: CGEventTapProxy,
