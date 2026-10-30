@@ -40,6 +40,15 @@ struct MenuPanel: View {
 
             Divider().overlay(.white.opacity(0.2))
 
+            MenuRow(title: "Buy Me a Coffee", symbol: "cup.and.saucer.fill") {
+                closeMenu()
+                NSWorkspace.shared.open(Brand.supportURL)
+            }
+            .help("Support Blabberflow at buymeacoffee.com/Chrisyeh")
+            .padding(5)
+
+            Divider().overlay(.white.opacity(0.2))
+
             HStack(spacing: 0) {
                 FooterButton(
                     title: model.isPaused ? "Resume" : "Pause",
@@ -106,6 +115,7 @@ struct MenuPanel: View {
 private struct MenuRow: View {
     let title: String
     var shortcut: String?
+    var symbol: String?
     let action: () -> Void
 
     @Environment(\.isEnabled) private var isEnabled
@@ -118,6 +128,9 @@ private struct MenuRow: View {
                 Spacer()
                 if let shortcut {
                     Text(shortcut).foregroundStyle(.white.opacity(0.6))
+                }
+                if let symbol {
+                    Image(systemName: symbol).foregroundStyle(.white.opacity(0.7))
                 }
             }
             .font(.system(size: 13))

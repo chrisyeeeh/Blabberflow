@@ -32,6 +32,16 @@ struct SettingsView: View {
                     }
                 }
             }
+            Section("Support") {
+                LabeledContent {
+                    Link(destination: Brand.supportURL) {
+                        Label("Buy Me a Coffee", systemImage: "cup.and.saucer.fill")
+                    }
+                } label: {
+                    Text("Enjoying Blabberflow?")
+                    Text("It's made by one person and isn't sold on the App Store. If it saves you time, a coffee helps.")
+                }
+            }
         }
         .formStyle(.grouped)
         .frame(width: 460)

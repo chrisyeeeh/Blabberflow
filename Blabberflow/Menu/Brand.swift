@@ -8,6 +8,9 @@ enum Brand {
 
     static let gradient = LinearGradient(colors: [gradientTop, gradientBottom], startPoint: .top, endPoint: .bottom)
 
+    /// Blabberflow isn't sold through the App Store, so support goes through Buy Me a Coffee.
+    static let supportURL = URL(string: "https://buymeacoffee.com/Chrisyeh")!
+
     /// The app icon at menu bar size, shown while idle.
     static let menuBarIcon: NSImage = {
         let icon = NSApp.applicationIconImage.copy() as! NSImage
