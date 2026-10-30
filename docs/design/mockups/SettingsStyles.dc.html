@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blabberflow Settings, Styles</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0a66d6}a:hover{color:#084fa6}
+.side{display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border-radius:7px;font-size:13px;color:#1d1d1f}
+.ic{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center}
+.group{background:#fff;border-radius:10px;box-shadow:0 0 0 0.5px rgba(0,0,0,0.12)}
+.row{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 14px;font-size:13px;color:#1d1d1f;border-top:0.5px solid #e5e5ea}
+.row:first-child{border-top:0}
+.pop{display:flex;align-items:center;gap:6px;height:22px;padding:0 6px 0 9px;border-radius:6px;background:#fff;box-shadow:0 0 0 0.5px rgba(0,0,0,0.2),0 1px 1px rgba(0,0,0,0.06);font-size:13px;color:#1d1d1f;border:0;font-family:inherit}
+.sub{font-size:11px;color:#6e6e73}
+.h{font-size:13px;font-weight:600;color:#1d1d1f;margin:0 0 6px 4px}
+</style>
+</helmet>
+<div style="width: 960px; height: 640px; border-radius: 12px; overflow: hidden; display: flex; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, sans-serif; background: #f2f2f7; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.25)">
+  <div style="width: 220px; background: rgba(232,232,237,0.9); border-right: 0.5px solid #d1d1d6; padding: 14px 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+    <div style="display: flex; gap: 8px; padding: 2px 6px 16px">
+      <span style="width: 12px; height: 12px; border-radius: 6px; background: #ff5f57; display: block"></span>
+      <span style="width: 12px; height: 12px; border-radius: 6px; background: #febc2e; display: block"></span>
+      <span style="width: 12px; height: 12px; border-radius: 6px; background: #28c840; display: block"></span>
+    </div>
+    <div class="side"><span class="ic" style="background: #8e8e93"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2" fill="none" stroke="#fff" stroke-width="1.400"/><circle cx="6" cy="6" r="4.800" fill="none" stroke="#fff" stroke-width="1.400" stroke-dasharray="2 1.800"/></svg></span>General</div>
+    <div class="side"><span class="ic" style="background: #636366"><svg width="12" height="10" viewBox="0 0 12 10" aria-hidden="true"><rect x="0.700" y="0.700" width="10.600" height="8.600" rx="1.500" fill="none" stroke="#fff" stroke-width="1.200"/><path d="M3 6.500h6" stroke="#fff" stroke-width="1.200" stroke-linecap="round"/></svg></span>Shortcuts</div>
+    <div class="side" style="background: #0a66d6; color: #fff"><span class="ic" style="background: #bf5af2"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 10 8.500 3.500M7.500 1.500l3 3" stroke="#fff" stroke-width="1.400" stroke-linecap="round"/></svg></span>Styles</div>
+    <div class="side"><span class="ic" style="background: #ff9f0a"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1.500h6.500a1.500 1.500 0 0 1 1.500 1.500v7.500H3.500A1.500 1.500 0 0 1 2 9z" fill="none" stroke="#fff" stroke-width="1.200"/></svg></span>Vocabulary</div>
+    <div class="side"><span class="ic" style="background: #30b0c7"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 3.500h8M2 6h5M2 8.500h7" stroke="#fff" stroke-width="1.300" stroke-linecap="round"/></svg></span>Text Replacements</div>
+    <div class="side"><span class="ic" style="background: #34c759"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.800" fill="none" stroke="#fff" stroke-width="1.300"/><path d="M6 3.300V6l2 1.300" stroke="#fff" stroke-width="1.300" stroke-linecap="round" fill="none"/></svg></span>History</div>
+    <div class="side"><span class="ic" style="background: #0a84ff"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1 10 2.500v3c0 2.700-1.800 4.500-4 5.500-2.200-1-4-2.800-4-5.500v-3z" fill="none" stroke="#fff" stroke-width="1.200"/></svg></span>Privacy</div>
+  </div>
+
+  <div style="flex: 1; padding: 20px 28px; box-sizing: border-box; overflow: hidden">
+    <h1 style="margin: 0 0 4px; font-size: 20px; font-weight: 700; color: #1d1d1f">Styles</h1>
+    <p style="margin: 0 0 18px; font-size: 13px; color: #6e6e73">Blabberflow adjusts tone to the app you’re typing in. Cleanup always stays close to what you said.</p>
+
+    <div class="h">Tone by app</div>
+    <div class="group" style="margin-bottom: 18px">
+      <div class="row"><div><div>Personal messages</div><div class="sub">Messages, WhatsApp, Telegram</div></div><button type="button" class="pop">Casual <svg width="8" height="10" viewBox="0 0 8 10" aria-hidden="true"><path d="M1.500 3.500 4 1l2.500 2.500M1.500 6.500 4 9l2.500-2.500" stroke="#3a3a3c" stroke-width="1.200" fill="none" stroke-linecap="round"/></svg></button></div>
+      <div class="row"><div><div>Work messages</div><div class="sub">Slack, Teams, Discord</div></div><button type="button" class="pop">Casual <svg width="8" height="10" viewBox="0 0 8 10" aria-hidden="true"><path d="M1.500 3.500 4 1l2.500 2.500M1.500 6.500 4 9l2.500-2.500" stroke="#3a3a3c" stroke-width="1.200" fill="none" stroke-linecap="round"/></svg></button></div>
+      <div class="row"><div><div>Email</div><div class="sub">Mail, Outlook, Gmail in Safari or Chrome</div></div><button type="button" class="pop">Formal <svg width="8" height="10" viewBox="0 0 8 10" aria-hidden="true"><path d="M1.500 3.500 4 1l2.500 2.500M1.500 6.500 4 9l2.500-2.500" stroke="#3a3a3c" stroke-width="1.200" fill="none" stroke-linecap="round"/></svg></button></div>
+      <div class="row"><div><div>Everything else</div><div class="sub">Notes, Pages, browsers, editors</div></div><button type="button" class="pop">Formal <svg width="8" height="10" viewBox="0 0 8 10" aria-hidden="true"><path d="M1.500 3.500 4 1l2.500 2.500M1.500 6.500 4 9l2.500-2.500" stroke="#3a3a3c" stroke-width="1.200" fill="none" stroke-linecap="round"/></svg></button></div>
+    </div>
+
+    <div class="h">Preview</div>
+    <div class="group" style="margin-bottom: 18px; padding: 12px 14px">
+      <div style="display: inline-flex; padding: 2px; border-radius: 7px; background: #e9e9ee; margin-bottom: 10px">
+        <button type="button" style="border: 0; font-family: inherit; font-size: 12px; padding: 3px 12px; border-radius: 5px; background: transparent; color: #1d1d1f">Formal</button>
+        <button type="button" style="border: 0; font-family: inherit; font-size: 12px; padding: 3px 12px; border-radius: 5px; background: #fff; color: #1d1d1f; box-shadow: 0 1px 2px rgba(0,0,0,0.15)">Casual</button>
+        <button type="button" style="border: 0; font-family: inherit; font-size: 12px; padding: 3px 12px; border-radius: 5px; background: transparent; color: #1d1d1f">Very casual</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; font-size: 13px">
+        <div><div class="sub" style="margin-bottom: 4px">You said</div><div style="color: #6e6e73; font-style: italic">“um so yeah I think we should push it to like Friday no wait Thursday”</div></div>
+        <div><div class="sub" style="margin-bottom: 4px">Blabberflow types</div><div style="color: #1d1d1f">I think we should push it to Thursday</div></div>
+      </div>
+    </div>
+
+    <div class="h">App overrides</div>
+    <div class="group">
+      <div class="row"><div>Terminal</div><button type="button" class="pop">Literal — no cleanup <svg width="8" height="10" viewBox="0 0 8 10" aria-hidden="true"><path d="M1.500 3.500 4 1l2.500 2.500M1.500 6.500 4 9l2.500-2.500" stroke="#3a3a3c" stroke-width="1.200" fill="none" stroke-linecap="round"/></svg></button></div>
+      <div class="row"><div>Xcode</div><button type="button" class="pop">Literal — no cleanup <svg width="8" height="10" viewBox="0 0 8 10" aria-hidden="true"><path d="M1.500 3.500 4 1l2.500 2.500M1.500 6.500 4 9l2.500-2.500" stroke="#3a3a3c" stroke-width="1.200" fill="none" stroke-linecap="round"/></svg></button></div>
+      <div class="row" style="justify-content: flex-start; gap: 6px"><button type="button" aria-label="Add app" style="border: 0; background: transparent; font-family: inherit; font-size: 13px; color: #0a66d6; padding: 0; cursor: pointer">+ Add App…</button></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

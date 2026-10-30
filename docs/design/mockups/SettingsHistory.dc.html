@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blabberflow Settings, History</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0a66d6}a:hover{color:#084fa6}
+.side{display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border-radius:7px;font-size:13px;color:#1d1d1f}
+.ic{width:20px;height:20px;border-radius:5px;display:block}
+.group{background:#fff;border-radius:10px;box-shadow:0 0 0 0.5px rgba(0,0,0,0.12)}
+.row{display:grid;grid-template-columns:64px 92px minmax(0,1fr) auto;align-items:center;column-gap:10px;min-height:40px;padding:0 14px;font-size:13px;color:#1d1d1f;border-top:0.5px solid #e5e5ea}
+.row:first-child{border-top:0}
+.t{font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums}
+.app{font-size:12px;color:#3a3a3c}
+.txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h{font-size:13px;font-weight:600;color:#1d1d1f;margin:0 0 6px 4px}
+.pop{display:flex;align-items:center;gap:6px;height:22px;padding:0 6px 0 9px;border-radius:6px;background:#fff;box-shadow:0 0 0 0.5px rgba(0,0,0,0.2),0 1px 1px rgba(0,0,0,0.06);font-size:13px;color:#1d1d1f;border:0;font-family:inherit}
+.icon-btn{width:24px;height:24px;border-radius:6px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 960px; height: 640px; border-radius: 12px; overflow: hidden; display: flex; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, sans-serif; background: #f2f2f7; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.25)">
+  <div style="width: 220px; background: rgba(232,232,237,0.9); border-right: 0.5px solid #d1d1d6; padding: 14px 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+    <div style="display: flex; gap: 8px; padding: 2px 6px 16px">
+      <span style="width: 12px; height: 12px; border-radius: 6px; background: #ff5f57; display: block"></span>
+      <span style="width: 12px; height: 12px; border-radius: 6px; background: #febc2e; display: block"></span>
+      <span style="width: 12px; height: 12px; border-radius: 6px; background: #28c840; display: block"></span>
+    </div>
+    <div class="side"><span class="ic" style="background: #8e8e93"></span>General</div>
+    <div class="side"><span class="ic" style="background: #636366"></span>Shortcuts</div>
+    <div class="side"><span class="ic" style="background: #bf5af2"></span>Styles</div>
+    <div class="side"><span class="ic" style="background: #ff9f0a"></span>Vocabulary</div>
+    <div class="side"><span class="ic" style="background: #30b0c7"></span>Text Replacements</div>
+    <div class="side" style="background: #0a66d6; color: #fff"><span class="ic" style="background: #34c759"></span>History</div>
+    <div class="side"><span class="ic" style="background: #0a84ff"></span>Privacy</div>
+  </div>
+
+  <div style="flex: 1; padding: 20px 28px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px">
+      <div>
+        <h1 style="margin: 0 0 4px; font-size: 20px; font-weight: 700; color: #1d1d1f">History</h1>
+        <p style="margin: 0; font-size: 13px; color: #6e6e73">Stored only on this Mac. Audio is never saved.</p>
+      </div>
+      <label style="display: flex; align-items: center; gap: 6px; width: 220px; height: 28px; padding: 0 8px; border-radius: 7px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.18); box-sizing: border-box">
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="5" cy="5" r="3.800" fill="none" stroke="#6e6e73" stroke-width="1.300"/><path d="M8 8l3 3" stroke="#6e6e73" stroke-width="1.300" stroke-linecap="round"/></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search history</span>
+        <input type="search" placeholder="Search" style="border: 0; outline: 0; font-family: inherit; font-size: 13px; width: 100%; background: transparent; color: #1d1d1f">
+      </label>
+    </div>
+
+    <div class="h">Today</div>
+    <div class="group" style="margin-bottom: 16px">
+      <div style="border-bottom: 0.5px solid #e5e5ea; background: #f5f8fe; border-radius: 10px 10px 0 0">
+        <div class="row" style="border-top: 0">
+          <span class="t">7:40 PM</span><span class="app">Mail</span><span class="txt" style="font-weight: 500">Thanks for sending the draft over. I went through it this afternoon and have a few thoughts before Thursday.</span>
+          <div style="display: flex; gap: 2px">
+            <button type="button" class="icon-btn" aria-label="Copy"><svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.500" fill="none" stroke="#0a66d6" stroke-width="1.200"/><path d="M9 2.500V2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5" fill="none" stroke="#0a66d6" stroke-width="1.200"/></svg></button>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 4px 14px 14px 180px; font-size: 12px">
+          <div><div style="color: #6e6e73; margin-bottom: 3px">Heard</div><div style="color: #3a3a3c; font-style: italic">“thanks for sending the draft over um I went through it uh this afternoon and I have a few thoughts before thursday”</div></div>
+          <div><div style="color: #6e6e73; margin-bottom: 3px">Typed · Email · Formal · 0.8 s</div><div style="color: #1d1d1f">Thanks for sending the draft over. I went through it this afternoon and have a few thoughts before Thursday.</div></div>
+        </div>
+      </div>
+      <div class="row" style="border-top: 0"><span class="t">7:28 PM</span><span class="app">Messages</span><span class="txt">sounds good, see you at 6</span><span></span></div>
+      <div class="row"><span class="t">6:51 PM</span><span class="app">Xcode</span><span class="txt">Add a retry with exponential backoff to the fetch in ReaderStore</span><span></span></div>
+      <div class="row"><span class="t">6:12 PM</span><span class="app">Slack</span><span class="txt">Pushed the fix, can someone take a look at the PR when they get a sec</span><span></span></div>
+    </div>
+
+    <div class="h">Yesterday</div>
+    <div class="group" style="margin-bottom: 16px">
+      <div class="row"><span class="t">9:04 PM</span><span class="app">Notes</span><span class="txt">Ideas for onboarding: practice field first, permissions after the user has felt it work</span><span></span></div>
+      <div class="row"><span class="t">4:37 PM</span><span class="app">Mail</span><span class="txt">Hi team, here’s a quick summary of where we landed on the Q4 priorities.</span><span></span></div>
+    </div>
+
+    <div style="margin-top: auto; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #1d1d1f">
+      <div style="display: flex; align-items: center; gap: 8px">Keep history <button type="button" class="pop">30 days <svg width="8" height="10" viewBox="0 0 8 10" aria-hidden="true"><path d="M1.500 3.500 4 1l2.500 2.500M1.500 6.500 4 9l2.500-2.500" stroke="#3a3a3c" stroke-width="1.200" fill="none" stroke-linecap="round"/></svg></button></div>
+      <button type="button" style="height: 24px; padding: 0 12px; border-radius: 6px; border: 0; background: #fff; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.2); font-family: inherit; font-size: 13px; color: #1d1d1f">Clear History…</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

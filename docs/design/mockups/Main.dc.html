@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blabberflow dictating into Mail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0a66d6}a:hover{color:#084fa6}
+.wp{background:radial-gradient(900px 600px at 20% 25%, #3a6fb0 0%, transparent 60%),radial-gradient(800px 600px at 85% 80%, #c9774a 0%, transparent 60%),radial-gradient(700px 500px at 70% 15%, #6a5aa8 0%, transparent 60%),#1d2a44}
+.glass{background:rgba(255,255,255,0.16);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.6),inset 0 0 0 0.5px rgba(255,255,255,0.25),0 10px 30px rgba(0,0,0,0.25)}
+.darkglass{background:rgba(20,20,24,0.55);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.35),inset 0 0 0 0.5px rgba(255,255,255,0.12),0 12px 32px rgba(0,0,0,0.35)}
+@keyframes wv{0%,100%{transform:scaleY(0.35)}50%{transform:scaleY(1)}}
+.bar{animation:wv 0.9s ease-in-out infinite;transform-origin:center}
+@keyframes blink{50%{opacity:0}}
+.caret{animation:blink 1s step-end infinite}
+</style>
+</helmet>
+<div class="wp" style="width: 1280px; height: 800px; position: relative; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, sans-serif; color: #1d1d1f">
+
+  <div class="glass" style="position: absolute; left: 0; top: 0; right: 0; height: 30px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-sizing: border-box; color: #fff; font-size: 13px; box-shadow: none; background: rgba(255,255,255,0.10)">
+    <div style="display: flex; align-items: center; gap: 20px">
+      <span style="font-weight: 700">Mail</span>
+      <span>File</span><span>Edit</span><span>View</span><span>Mailbox</span><span>Message</span><span>Format</span><span>Window</span><span>Help</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 18px">
+      <div style="display: flex; align-items: center; justify-content: center; width: 26px; height: 20px; border-radius: 5px; background: rgba(255,255,255,0.22)">
+        <svg width="16" height="14" viewBox="0 0 16 14" aria-label="Blabberflow is listening" role="img"><g stroke="#fff" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="5" x2="2" y2="9"/><line x1="5" y1="3" x2="5" y2="11"/><line x1="8" y1="1" x2="8" y2="13"/><line x1="11" y1="3" x2="11" y2="11"/><line x1="14" y1="5" x2="14" y2="9"/></g></svg>
+      </div>
+      <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M8 11.5 1 4.5a10 10 0 0 1 14 0z" fill="#fff"/></svg>
+      <span>Thu Oct 29  7:42 PM</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 230px; top: 76px; width: 820px; height: 540px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.25), 0 30px 80px rgba(0,0,0,0.45); overflow: hidden; display: flex; flex-direction: column">
+    <div style="height: 52px; display: flex; align-items: center; gap: 18px; padding: 0 18px; background: #f6f6f7; border-bottom: 0.5px solid #d8d8dc">
+      <div style="display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 6px; background: #ff5f57; display: block"></span>
+        <span style="width: 12px; height: 12px; border-radius: 6px; background: #febc2e; display: block"></span>
+        <span style="width: 12px; height: 12px; border-radius: 6px; background: #28c840; display: block"></span>
+      </div>
+      <svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><path d="M1.500 9 18.500 1.500 14 16.500 9.500 10.500z" fill="none" stroke="#6e6e73" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <span style="font-size: 14px; font-weight: 600; color: #1d1d1f">Q4 roadmap check-in</span>
+    </div>
+    <div style="padding: 0 22px; font-size: 13px; color: #6e6e73">
+      <div style="display: flex; gap: 8px; padding: 10px 0; border-bottom: 0.5px solid #e5e5ea"><span style="width: 60px">To:</span><span style="color: #0a66d6">Priya Shah</span></div>
+      <div style="display: flex; gap: 8px; padding: 10px 0; border-bottom: 0.5px solid #e5e5ea"><span style="width: 60px">Subject:</span><span style="color: #1d1d1f">Q4 roadmap check-in</span></div>
+    </div>
+    <div style="padding: 20px 22px; font-size: 14px; line-height: 1.6; color: #1d1d1f; flex: 1">
+      <p style="margin: 0 0 12px">Hi Priya,</p>
+      <p style="margin: 0 0 12px">Thanks for sending the draft over. I went through it this afternoon and have a few thoughts before Thursday.</p>
+      <p style="margin: 0"><span class="caret" style="display: inline-block; width: 2px; height: 18px; background: #0a66d6; vertical-align: -3px"></span></p>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 104px; display: flex; justify-content: center">
+    <div class="darkglass" style="height: 40px; border-radius: 20px; display: flex; align-items: center; gap: 12px; padding: 0 16px 0 12px; color: #fff">
+      <span style="width: 22px; height: 22px; border-radius: 11px; background: #ff453a; display: flex; align-items: center; justify-content: center">
+        <svg width="10" height="14" viewBox="0 0 10 14" aria-hidden="true"><rect x="2.500" y="0.800" width="5" height="8" rx="2.500" fill="#fff"/><path d="M1 6.500a4 4 0 0 0 8 0M5 10.500v2.500" stroke="#fff" stroke-width="1.300" fill="none" stroke-linecap="round"/></svg>
+      </span>
+      <div style="display: flex; align-items: center; gap: 3px; height: 22px" aria-label="Listening" role="img">
+        <span class="bar" style="width: 3px; height: 8px; border-radius: 2px; background: #fff; display: block; animation-delay: 0s"></span>
+        <span class="bar" style="width: 3px; height: 14px; border-radius: 2px; background: #fff; display: block; animation-delay: 0.1s"></span>
+        <span class="bar" style="width: 3px; height: 20px; border-radius: 2px; background: #fff; display: block; animation-delay: 0.2s"></span>
+        <span class="bar" style="width: 3px; height: 12px; border-radius: 2px; background: #fff; display: block; animation-delay: 0.3s"></span>
+        <span class="bar" style="width: 3px; height: 22px; border-radius: 2px; background: #fff; display: block; animation-delay: 0.15s"></span>
+        <span class="bar" style="width: 3px; height: 16px; border-radius: 2px; background: #fff; display: block; animation-delay: 0.25s"></span>
+        <span class="bar" style="width: 3px; height: 10px; border-radius: 2px; background: #fff; display: block; animation-delay: 0.05s"></span>
+        <span class="bar" style="width: 3px; height: 18px; border-radius: 2px; background: #fff; display: block; animation-delay: 0.35s"></span>
+        <span class="bar" style="width: 3px; height: 8px; border-radius: 2px; background: #fff; display: block; animation-delay: 0.2s"></span>
+      </div>
+      <span style="font-size: 12px; color: rgba(255,255,255,0.75); padding-left: 4px; border-left: 0.5px solid rgba(255,255,255,0.3); padding-left: 10px">Email · Formal</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center">
+    <div class="glass" style="height: 72px; border-radius: 24px; display: flex; align-items: center; gap: 10px; padding: 0 12px">
+      <span style="width: 54px; height: 54px; border-radius: 13px; background: #4b8cf5; display: block"></span>
+      <span style="width: 54px; height: 54px; border-radius: 13px; background: #f2f2f7; display: block"></span>
+      <span style="width: 54px; height: 54px; border-radius: 13px; background: #3ec25a; display: block"></span>
+      <span style="width: 54px; height: 54px; border-radius: 13px; background: #f5c242; display: block"></span>
+      <span style="width: 54px; height: 54px; border-radius: 13px; background: #e7584c; display: block"></span>
+      <span style="width: 54px; height: 54px; border-radius: 13px; background: #8e8e93; display: block"></span>
+      <span style="width: 54px; height: 54px; border-radius: 13px; background: #5e5ce6; display: block"></span>
+    </div>
+  </div>
+
+  <div style="position: absolute; right: 24px; bottom: 112px; font-size: 12px; color: rgba(255,255,255,0.85); text-align: right; line-height: 1.5">
+    <div><span style="display: inline-block; padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,0.2); font-weight: 600">fn</span> held</div>
+    <div>Release to insert · esc to cancel</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

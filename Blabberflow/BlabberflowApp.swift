@@ -5,10 +5,11 @@ import SwiftUI
 
     var body: some Scene {
         MenuBarExtra {
-            MenuContent(model: appDelegate.model)
+            MenuPanel(model: appDelegate.model)
         } label: {
             MenuBarLabel(model: appDelegate.model)
         }
+        .menuBarExtraStyle(.window)
         Settings {
             SettingsView(model: appDelegate.model)
         }
@@ -21,7 +22,9 @@ private struct MenuBarLabel: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        Image(systemName: model.isListening ? "waveform.circle.fill" : "waveform")
+        // Idle: a small app icon. Listening: a tiny live pill.
+        Image(nsImage: model.isListening ? Brand.menuBarPill : Brand.menuBarIcon)
+            .accessibilityLabel(model.isListening ? "Blabberflow, listening" : "Blabberflow")
             .onReceive(NotificationCenter.default.publisher(for: AppDelegate.dockIconClicked)) { _ in
                 openSettings()
             }

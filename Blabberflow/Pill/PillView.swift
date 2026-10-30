@@ -1,58 +1,78 @@
 import SwiftUI
 
+/// One glass capsule whose content and size change with the state, so it morphs like the Dynamic Island.
 struct PillView: View {
     let model: AppModel
 
     var body: some View {
-        ZStack {
-            if model.pillState != .hidden {
-                content
-                    .padding(.horizontal, 14)
-                    .frame(height: 36)
-                    .glassEffect(.regular, in: .capsule)
-                    .transition(.scale(scale: 0.3, anchor: .bottom).combined(with: .opacity))
-            }
+        content
+            .id(contentKey)
+            .transition(.opacity.combined(with: .scale(scale: 0.85)))
+            .frame(height: model.pillState == .idle ? 7 : 40)
+            .glassEffect(.regular, in: .capsule)
+            .opacity(model.isPaused && model.pillState == .idle ? 0 : 1)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: model.pillState)
+    }
+
+    /// Changes only when the layout changes, so the waveform doesn't re-transition on every level update.
+    private var contentKey: String {
+        switch model.pillState {
+        case .idle: "idle"
+        case .listening: "listening"
+        case .processing: "processing"
+        case .inserted: "inserted"
+        case .copied: "copied"
+        case .error: "error"
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: model.pillState)
     }
 
     @ViewBuilder private var content: some View {
         switch model.pillState {
-        case .hidden:
-            EmptyView()
+        case .idle:
+            Color.clear
+                .frame(width: 40)
         case .listening:
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(.red)
-                    .frame(width: 7, height: 7)
+            HStack(spacing: 12) {
+                RecordingDot()
                 Waveform(levels: model.levels)
             }
-            .frame(width: 152)
+            .padding(.leading, 9)
+            .padding(.trailing, 16)
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Listening")
         case .processing:
-            ProcessingBars()
-                .frame(width: 152)
+            ShimmerLine()
+                .padding(.horizontal, 18)
                 .accessibilityLabel("Processing")
-        case .inserted:
-            Image(systemName: "checkmark")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.green)
-                .accessibilityLabel("Inserted")
-        case .message(let text, let isError):
-            HStack(spacing: 6) {
-                Image(systemName: isError ? "exclamationmark.triangle.fill" : "doc.on.clipboard")
-                    .foregroundStyle(isError ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
-                Text(text)
-            }
-            .font(.system(size: 12, weight: .medium))
-            .fixedSize()
+        case .inserted(let words):
+            StatusLabel(
+                text: "\(words) \(words == 1 ? "word" : "words")",
+                symbol: "checkmark.circle.fill",
+                tint: .green
+            )
+            .accessibilityLabel("Inserted \(words) words")
+        case .copied:
+            StatusLabel(text: "Copied — ⌘V to paste", symbol: "doc.on.clipboard", tint: .yellow)
+        case .error(let reason):
+            StatusLabel(text: reason, symbol: "exclamationmark.triangle.fill", tint: .yellow)
         }
     }
 }
 
-/// Nine bars mirrored around the centre; the newest level sits in the middle.
-private struct Waveform: View {
+/// 22 pt red circle with a microphone.
+struct RecordingDot: View {
+    var body: some View {
+        Image(systemName: "mic.fill")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 22, height: 22)
+            .background(.red, in: .circle)
+    }
+}
+
+/// Nine bars, 3 pt wide with 3 pt gaps, 6–22 pt tall, mirrored so the newest level sits in the middle.
+struct Waveform: View {
     let levels: [Float]
 
     var body: some View {
@@ -61,31 +81,53 @@ private struct Waveform: View {
             ForEach(Array(mirrored.enumerated()), id: \.offset) { _, level in
                 Capsule()
                     .fill(.primary)
-                    .frame(width: 3, height: 4 + 18 * CGFloat(level))
+                    .frame(width: 3, height: 6 + 16 * CGFloat(level))
             }
         }
-        .frame(height: 24)
+        .frame(height: 22)
         .animation(.easeOut(duration: 0.08), value: levels)
     }
 }
 
-/// The waveform settles into a travelling shimmer while the transcript is finalised.
-private struct ProcessingBars: View {
+/// The bars collapse into a 120 × 4 pt line with a highlight sweeping across it.
+private struct ShimmerLine: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let width: CGFloat = 120
+    private let period = 1.2
 
     var body: some View {
         TimelineView(.animation(paused: reduceMotion)) { context in
-            let time = context.date.timeIntervalSinceReferenceDate
-            HStack(spacing: 3) {
-                ForEach(0..<9, id: \.self) { index in
-                    let phase = (sin(time * 6 - Double(index) * 0.6) + 1) / 2
-                    Capsule()
-                        .fill(.primary)
-                        .frame(width: 3, height: 4 + 4 * phase)
-                        .opacity(0.3 + 0.5 * phase)
+            let progress = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period) / period
+            Capsule()
+                .fill(.primary.opacity(0.25))
+                .overlay {
+                    LinearGradient(colors: [.clear, .primary.opacity(0.9), .clear], startPoint: .leading, endPoint: .trailing)
+                        .frame(width: width)
+                        .offset(x: reduceMotion ? 0 : (progress * 2 - 1) * width)
                 }
-            }
-            .frame(height: 24)
+                .clipShape(.capsule)
+                .frame(width: width, height: 4)
         }
+    }
+}
+
+private struct StatusLabel: View {
+    let text: String
+    let symbol: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(symbol.hasSuffix(".fill") ? .white : tint, tint)
+                .font(.system(size: 15))
+            Text(text)
+                .font(.system(size: 13, weight: .medium))
+                .fixedSize()
+        }
+        .padding(.leading, 12)
+        .padding(.trailing, 16)
     }
 }
