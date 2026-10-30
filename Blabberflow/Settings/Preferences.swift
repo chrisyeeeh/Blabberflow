@@ -194,6 +194,14 @@ final class Preferences {
         microphoneUID = Self.load(Key.microphoneUID) ?? nil
         var styles: [Style] = Self.load(Key.styles) ?? Style.builtIn
         if !styles.contains(where: \.isLiteral) { styles.insert(Style.builtIn[0], at: 0) }
+        // Bring saved built-in prompts up to date, unless the user has edited them.
+        let updatedPrompts = [
+            "Make it friendly and relaxed, like a chat message: contractions are fine, light punctuation, no full stop at the very end.":
+                "Make it friendly and relaxed, like a chat message: drop ums and uhs, contractions are fine, light punctuation, no full stop at the very end.",
+        ]
+        for index in styles.indices {
+            if let updated = updatedPrompts[styles[index].instructions] { styles[index].instructions = updated }
+        }
         self.styles = styles
         defaultStyleID = Self.load(Key.defaultStyleID) ?? Style.cleanID
         dictionary = Self.load(Key.dictionary) ?? []
