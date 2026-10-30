@@ -20,7 +20,13 @@ final class PillPanel {
         panel.ignoresMouseEvents = true
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        panel.contentView = NSHostingView(rootView: PillView(model: model))
+        panel.contentView = FirstClickHostingView(rootView: PillView(model: model))
+    }
+
+    /// Off except while the hands-free buttons are showing, so the pill never blocks clicks on the Dock.
+    var acceptsClicks: Bool {
+        get { !panel.ignoresMouseEvents }
+        set { panel.ignoresMouseEvents = !newValue }
     }
 
     /// Moves the panel to the screen under the pointer, 12 pt above the Dock.
@@ -31,4 +37,9 @@ final class PillPanel {
         panel.setFrameOrigin(NSPoint(x: visible.midX - panel.frame.width / 2, y: visible.minY + 12))
         panel.orderFrontRegardless()
     }
+}
+
+/// The panel never becomes key, so buttons must respond to the first click.
+private final class FirstClickHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }

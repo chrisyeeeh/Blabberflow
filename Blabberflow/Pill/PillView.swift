@@ -19,7 +19,7 @@ struct PillView: View {
     private var contentKey: String {
         switch model.pillState {
         case .idle: "idle"
-        case .listening: "listening"
+        case .listening: model.isHandsFree ? "handsFree" : "listening"
         case .processing: "processing"
         case .inserted: "inserted"
         case .copied: "copied"
@@ -32,6 +32,8 @@ struct PillView: View {
         case .idle:
             Color.clear
                 .frame(width: 40)
+        case .listening where model.isHandsFree:
+            HandsFreeControls(model: model)
         case .listening:
             HStack(spacing: 12) {
                 RecordingDot()
@@ -57,6 +59,41 @@ struct PillView: View {
         case .error(let reason):
             StatusLabel(text: reason, symbol: "exclamationmark.triangle.fill", tint: .yellow)
         }
+    }
+}
+
+/// Press-to-start mode: elapsed time, waveform, cancel and stop. Clicking the pill body does nothing,
+/// so recording can't be stopped by accident.
+private struct HandsFreeControls: View {
+    let model: AppModel
+
+    var body: some View {
+        HStack(spacing: 10) {
+            TimelineView(.periodic(from: model.listeningSince, by: 1)) { context in
+                Text(Duration.seconds(context.date.timeIntervalSince(model.listeningSince)), format: .time(pattern: .minuteSecond))
+                    .font(.system(size: 12).monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            Waveform(levels: model.levels)
+            Button(action: model.cancelFromPill) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .frame(width: 28, height: 28)
+                    .background(.primary.opacity(0.18), in: .circle)
+            }
+            .accessibilityLabel("Cancel")
+            Button(action: model.stopFromPill) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(.white)
+                    .frame(width: 9, height: 9)
+                    .frame(width: 28, height: 28)
+                    .background(.red, in: .circle)
+            }
+            .accessibilityLabel("Stop and insert")
+        }
+        .buttonStyle(.plain)
+        .padding(.leading, 14)
+        .padding(.trailing, 6)
     }
 }
 

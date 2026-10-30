@@ -1,6 +1,7 @@
 import AppKit
-import AVFAudio
+import AVFoundation
 import Observation
+import OSLog
 
 enum PillState: Equatable {
     /// The 40 × 7 pt sliver that is always there.
@@ -26,21 +27,32 @@ struct Transcript: Identifiable {
     let date: Date
 }
 
-/// Runs the hold-to-talk loop: hotkey → record → transcribe → insert, and drives the pill.
+private let log = Logger(subsystem: "com.chrisyeh.Blabberflow", category: "Dictation")
+
+/// Runs the dictation loop: hotkey → record → transcribe → insert, and drives the pill.
 @Observable
 final class AppModel {
+    let preferences = Preferences()
+
     var pillState = PillState.idle
     /// Recent microphone levels, newest first, each 0…1.
     var levels: [Float] = Array(repeating: 0, count: 5)
     var recent: [Transcript] = []
     var hasAccessibility = AXIsProcessTrusted()
-    var hasMicrophone = AVAudioApplication.shared.recordPermission == .granted
+    var hasMicrophone = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     var speechStatus: SpeechStatus = .preparing
+    /// True in press-to-start mode while recording; the pill shows a timer and stop/cancel buttons.
+    private(set) var isHandsFree = false
+    private(set) var listeningSince = Date.now
     var isPaused = false {
         didSet {
-            hotkey.isEnabled = !isPaused
+            updateHotkeyEnabled()
             if isPaused { cancelDictation() }
         }
+    }
+    /// Set while a shortcut field in Settings is recording, so pressing the current shortcut doesn't dictate.
+    var isRecordingShortcut = false {
+        didSet { updateHotkeyEnabled() }
     }
 
     var isListening: Bool { phase == .listening }
@@ -61,15 +73,28 @@ final class AppModel {
 
     var statusDetail: String {
         if !hasAccessibility || !hasMicrophone { return "Open Settings to allow it" }
-        return "Hold right ⌥ to dictate · on-device"
+        return "\(shortcutHint) · on-device"
+    }
+
+    /// "Hold Right ⌥ to dictate" or "Press Right ⌥ to start and stop".
+    var shortcutHint: String {
+        let key = preferences.dictationShortcut.display
+        switch preferences.activationMode {
+        case .hold: return "Hold \(key) to dictate"
+        case .toggle: return "Press \(key) to start and stop"
+        }
     }
 
     private enum Phase { case idle, pending, listening, processing }
 
-    /// Holds shorter than this are treated as ordinary Option presses.
+    /// Holds shorter than this are treated as ordinary key presses.
     private let holdThreshold = Duration.milliseconds(250)
+    /// In press-to-start mode, a modifier key held longer than this isn't a tap.
+    private let tapLimit = Duration.milliseconds(500)
     /// The waveform redraws at most this often.
     private let levelInterval = Duration.milliseconds(33)
+    /// Below this RMS for a whole recording, the mic delivered silence (muted, lid closed, wrong input).
+    private let silenceLevel: Float = 0.0005
 
     @ObservationIgnored private var phase = Phase.idle
     @ObservationIgnored private let hotkey = HotkeyMonitor()
@@ -78,6 +103,10 @@ final class AppModel {
     @ObservationIgnored private lazy var pill = PillPanel(model: self)
     @ObservationIgnored private var startError: Error?
     @ObservationIgnored private var targetAppName: String?
+    @ObservationIgnored private var microphoneName = "the microphone"
+    @ObservationIgnored private var peakLevel: Float = 0
+    @ObservationIgnored private var pressedAt = ContinuousClock.now
+    @ObservationIgnored private var tapInterrupted = false
     /// The app to give focus back to when Paste Last is chosen from the menu bar panel.
     @ObservationIgnored private var lastOtherApp: NSRunningApplication?
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
@@ -88,6 +117,8 @@ final class AppModel {
     func start() {
         hotkey.onEvent = { [weak self] in self?.handle($0) }
         engine.onLevel = { [weak self] in self?.push(level: $0) }
+        preferences.onChange = { [weak self] in self?.applyPreferences() }
+        applyPreferences()
         pill.show()
 
         lastOtherApp = NSWorkspace.shared.frontmostApplication
@@ -108,7 +139,7 @@ final class AppModel {
         }
         Task { await startHotkeyWhenTrusted() }
         Task {
-            hasMicrophone = await AVAudioApplication.requestRecordPermission()
+            hasMicrophone = await AVCaptureDevice.requestAccess(for: .audio)
             await prepareSpeech()
         }
     }
@@ -129,10 +160,30 @@ final class AppModel {
 
     func refreshPermissions() {
         hasAccessibility = AXIsProcessTrusted()
-        hasMicrophone = AVAudioApplication.shared.recordPermission == .granted
+        hasMicrophone = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    }
+
+    /// The pill's stop button in press-to-start mode.
+    func stopFromPill() {
+        guard phase == .listening else { return }
+        endDictation()
+    }
+
+    /// The pill's cancel button.
+    func cancelFromPill() {
+        cancelDictation()
     }
 
     // MARK: Setup
+
+    private func applyPreferences() {
+        hotkey.dictationShortcut = preferences.dictationShortcut
+        hotkey.pasteLastShortcut = preferences.pasteLastShortcut
+    }
+
+    private func updateHotkeyEnabled() {
+        hotkey.isEnabled = !isPaused && !isRecordingShortcut
+    }
 
     private func startHotkeyWhenTrusted() async {
         while !hotkey.start() {
@@ -140,6 +191,7 @@ final class AppModel {
             try? await Task.sleep(for: .seconds(1))
         }
         hasAccessibility = true
+        log.info("Hotkey monitor running")
     }
 
     private func prepareSpeech() async {
@@ -147,8 +199,10 @@ final class AppModel {
         do {
             try await engine.prepare()
             speechStatus = .ready
+            log.info("Speech model ready")
         } catch {
             speechStatus = .failed(error.localizedDescription)
+            log.error("Speech model failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -156,38 +210,105 @@ final class AppModel {
 
     private func handle(_ event: HotkeyEvent) {
         switch event {
-        case .pressed: beginDictation()
-        case .released: endDictation()
-        case .keyWhileHeld: if phase == .pending { cancelDictation() }
-        case .escape: cancelDictation()
-        case .pasteLast: pasteLast()
+        case .escape:
+            cancelDictation()
+        case .pasteLast:
+            pasteLast()
+        case .pressed, .released, .keyWhileHeld:
+            switch preferences.activationMode {
+            case .hold: handleHold(event)
+            case .toggle: handleToggle(event)
+            }
         }
     }
 
-    private func beginDictation() {
+    private func handleHold(_ event: HotkeyEvent) {
+        switch event {
+        case .pressed: beginHold()
+        case .released: endDictation()
+        case .keyWhileHeld: if phase == .pending { cancelDictation() }
+        default: break
+        }
+    }
+
+    /// A modifier key toggles on a clean tap, so ⌥-shortcuts keep working; a key combo toggles on press.
+    private func handleToggle(_ event: HotkeyEvent) {
+        let isModifierKey = preferences.dictationShortcut.isModifierKey
+        switch event {
+        case .pressed:
+            if phase == .listening {
+                endDictation()
+            } else if phase == .idle {
+                pressedAt = .now
+                tapInterrupted = false
+                if !isModifierKey { beginHandsFree() }
+            }
+        case .released:
+            guard isModifierKey, phase == .idle, !tapInterrupted, ContinuousClock.now - pressedAt < tapLimit else { return }
+            beginHandsFree()
+        case .keyWhileHeld:
+            tapInterrupted = true
+        default:
+            break
+        }
+    }
+
+    /// Starts recording on key down so the first word isn't clipped; the pill appears once it's clearly a hold.
+    private func beginHold() {
         guard phase == .idle else { return }
         phase = .pending
-        targetAppName = NSWorkspace.shared.frontmostApplication?.localizedName
-        // Start recording on key down so the first word isn't clipped.
-        startError = nil
-        do { try engine.start() } catch { startError = error }
+        isHandsFree = false
+        startRecording()
 
         holdTask = Task {
             try? await Task.sleep(for: holdThreshold)
             guard !Task.isCancelled, phase == .pending else { return }
             if let startError {
+                engine.cancel()
                 phase = .idle
                 flash(.error(startError.localizedDescription), for: .seconds(3))
                 return
             }
-            phase = .listening
-            hotkey.capturesEscape = true
-            dismissTask?.cancel()
-            levels = Array(repeating: 0, count: levels.count)
-            pill.show()
-            pillState = .listening
-            announce("Listening")
+            showListening()
         }
+    }
+
+    private func beginHandsFree() {
+        guard phase == .idle else { return }
+        startRecording()
+        if let startError {
+            flash(.error(startError.localizedDescription), for: .seconds(3))
+            return
+        }
+        isHandsFree = true
+        showListening()
+    }
+
+    private func startRecording() {
+        targetAppName = NSWorkspace.shared.frontmostApplication?.localizedName
+        let device = AudioDevices.device(uid: preferences.microphoneUID)
+        microphoneName = device?.name ?? "the microphone"
+        peakLevel = 0
+        startError = nil
+        do {
+            try engine.start(device: device?.id)
+            log.info("Recording from \(self.microphoneName, privacy: .public)")
+        } catch {
+            startError = error
+            log.error("Couldn't start recording: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func showListening() {
+        phase = .listening
+        hotkey.capturesEscape = true
+        dismissTask?.cancel()
+        levels = Array(repeating: 0, count: levels.count)
+        listeningSince = .now
+        pill.show()
+        pill.acceptsClicks = isHandsFree
+        pillState = .listening
+        announce("Listening")
     }
 
     private func endDictation() {
@@ -196,6 +317,7 @@ final class AppModel {
             cancelDictation()
         case .listening:
             phase = .processing
+            pill.acceptsClicks = false
             pillState = .processing
             Task { await finishDictation() }
         case .idle, .processing:
@@ -208,17 +330,25 @@ final class AppModel {
             let text = try await engine.finish()
             guard phase == .processing else { return } // Cancelled with Escape.
             phase = .idle
+            isHandsFree = false
             hotkey.capturesEscape = false
+            log.info("Transcribed \(text.count) characters, peak level \(self.peakLevel)")
             guard !text.isEmpty else {
-                pillState = .idle
+                if peakLevel < silenceLevel {
+                    flash(.error("No audio from \(microphoneName)"), for: .seconds(4))
+                } else {
+                    flash(.error("Didn't catch that"), for: .seconds(2))
+                }
                 return
             }
             recent.insert(Transcript(text: text, appName: targetAppName, date: .now), at: 0)
-            recent = Array(recent.prefix(10))
+            recent = Array(recent.prefix(50))
             await insert(text)
         } catch {
             phase = .idle
+            isHandsFree = false
             hotkey.capturesEscape = false
+            log.error("Transcription failed: \(error.localizedDescription, privacy: .public)")
             flash(.error("Couldn't transcribe"), for: .seconds(3))
         }
     }
@@ -227,12 +357,16 @@ final class AppModel {
         holdTask?.cancel()
         engine.cancel()
         hotkey.capturesEscape = false
+        pill.acceptsClicks = false
         if phase == .listening || phase == .processing { pillState = .idle }
         phase = .idle
+        isHandsFree = false
     }
 
     private func insert(_ text: String) async {
-        switch await inserter.insert(text) {
+        let outcome = await inserter.insert(text)
+        log.info("Insert outcome: \(String(describing: outcome), privacy: .public)")
+        switch outcome {
         case .inserted, .pasted:
             let words = text.split(whereSeparator: \.isWhitespace).count
             flash(.inserted(words: words), for: .milliseconds(600))
@@ -249,6 +383,7 @@ final class AppModel {
 
     private func push(level rms: Float) {
         guard phase == .listening || phase == .pending else { return }
+        peakLevel = max(peakLevel, rms)
         let now = ContinuousClock.now
         guard now - lastLevelUpdate >= levelInterval else { return }
         lastLevelUpdate = now

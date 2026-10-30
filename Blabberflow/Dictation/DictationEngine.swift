@@ -1,4 +1,4 @@
-import AVFAudio
+import AVFoundation
 import Speech
 
 /// Records from the microphone and transcribes on-device with SpeechAnalyzer.
@@ -46,9 +46,10 @@ final class DictationEngine {
     }
 
     /// Starts recording at once; the analyzer catches up from the buffered audio.
-    func start() throws {
+    /// - Parameter device: The microphone to use; `nil` uses the system default.
+    func start(device: AudioDeviceID?) throws {
         guard session == nil else { return }
-        guard AVAudioApplication.shared.recordPermission == .granted else { throw EngineError.microphoneDenied }
+        guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else { throw EngineError.microphoneDenied }
         guard let locale, let analyzerFormat else { throw EngineError.notReady }
 
         let transcriber = SpeechTranscriber(locale: locale, preset: .progressiveTranscription)
@@ -56,6 +57,7 @@ final class DictationEngine {
         let (stream, input) = AsyncStream<AnalyzerInput>.makeStream()
 
         try capture.start(
+            device: device,
             outputFormat: analyzerFormat,
             onBuffer: { buffer in input.yield(AnalyzerInput(buffer: buffer)) },
             onLevel: { [weak self] level in

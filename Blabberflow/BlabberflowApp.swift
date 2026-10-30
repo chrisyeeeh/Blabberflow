@@ -11,7 +11,7 @@ import SwiftUI
         }
         .menuBarExtraStyle(.window)
         Settings {
-            SettingsView(model: appDelegate.model)
+            SettingsWindow(model: appDelegate.model)
         }
     }
 }
