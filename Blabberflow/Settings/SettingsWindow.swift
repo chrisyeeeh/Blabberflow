@@ -265,7 +265,8 @@ private struct GeneralPane: View {
         .task {
             // Microphones come and go (USB, iPhone Continuity), so keep the list fresh while visible.
             while !Task.isCancelled {
-                microphones = AudioDevices.inputs()
+                // Off the main thread: a mic switching modes (Bluetooth, a stopping test) can stall Core Audio queries.
+                microphones = await Task.detached { AudioDevices.inputs() }.value
                 try? await Task.sleep(for: .seconds(2))
             }
         }
