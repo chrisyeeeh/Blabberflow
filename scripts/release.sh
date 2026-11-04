@@ -57,6 +57,16 @@ notarize() {
 # ---------------------------------------------------------------------------
 step "Checking setup"
 
+# xcodebuild needs full Xcode. If xcode-select points at the Command Line Tools, use Xcode for this run.
+selected="$(xcode-select -p 2> /dev/null || echo nothing)"
+if [[ -z "${DEVELOPER_DIR:-}" && "$selected" != *.app/* ]]; then
+    xcode="$(mdfind "kMDItemCFBundleIdentifier == 'com.apple.dt.Xcode'" 2> /dev/null | head -1)"
+    xcode="${xcode:-/Applications/Xcode.app}"
+    [[ -d "$xcode/Contents/Developer" ]] || fail "xcodebuild needs Xcode, and it isn't installed. Get it from the App Store."
+    export DEVELOPER_DIR="$xcode/Contents/Developer"
+    echo "Using $xcode (xcode-select points at $selected)"
+fi
+
 IDENTITY="$(security find-identity -v -p codesigning \
     | awk -v team="($TEAM_ID)" '/Developer ID Application/ && index($0, team) { print $2; exit }')"
 [[ -n "$IDENTITY" ]] || fail "No Developer ID Application certificate for team $TEAM_ID in your keychain.
@@ -70,7 +80,9 @@ if [[ "${ALLOW_DIRTY:-}" != 1 ]] && [[ -n "$(git -C "$ROOT" status --porcelain)"
     fail "You have uncommitted changes. Commit them first, or rerun with ALLOW_DIRTY=1."
 fi
 
-settings="$(xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release -showBuildSettings 2> /dev/null)"
+settings="$(xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release -showBuildSettings 2>&1)" \
+    || fail "Couldn't read the project's build settings:
+$(grep -i error <<< "$settings" | head -5)"
 VERSION="$(awk '$1 == "MARKETING_VERSION" { print $3; exit }' <<< "$settings")"
 BUILD="$(awk '$1 == "CURRENT_PROJECT_VERSION" { print $3; exit }' <<< "$settings")"
 [[ -n "$VERSION" && -n "$BUILD" ]] || fail "Couldn't read the version from the project."
